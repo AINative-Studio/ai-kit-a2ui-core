@@ -156,11 +156,11 @@ describe('ComponentRegistry', () => {
   })
 
   describe('standard', () => {
-    it('returns registry with 18 standard components', () => {
+    it('returns registry with 22 standard components', () => {
       const standardRegistry = ComponentRegistry.standard()
       const all = standardRegistry.getAll()
 
-      expect(all).toHaveLength(18)
+      expect(all).toHaveLength(22)
     })
 
     it('includes all A2UI v0.9 component types', () => {
@@ -193,6 +193,22 @@ describe('ComponentRegistry', () => {
       }
     })
 
+    it('includes all A2UI v0.10 video component types', () => {
+      const standardRegistry = ComponentRegistry.standard()
+      const types = standardRegistry.getAll().map((d) => d.type)
+
+      const videoComponentTypes = [
+        'videoRecorder',
+        'videoCall',
+        'aiVideo',
+        'aiVideoPlayer',
+      ]
+
+      for (const videoType of videoComponentTypes) {
+        expect(types).toContain(videoType)
+      }
+    })
+
     it('assigns categories to components', () => {
       const standardRegistry = ComponentRegistry.standard()
 
@@ -211,6 +227,219 @@ describe('ComponentRegistry', () => {
 
       expect(button?.defaultProps).toBeDefined()
       expect(button?.defaultProps).toHaveProperty('variant')
+    })
+  })
+
+  describe('video components', () => {
+    let registry: ComponentRegistry
+
+    beforeEach(() => {
+      registry = ComponentRegistry.standard()
+    })
+
+    describe('videoRecorder component', () => {
+      it('is registered in standard catalog', () => {
+        expect(registry.has('videoRecorder')).toBe(true)
+      })
+
+      it('has correct display name and description', () => {
+        const videoRecorder = registry.get('videoRecorder')
+
+        expect(videoRecorder?.displayName).toBe('Video Recorder')
+        expect(videoRecorder?.description).toBe('Record screen, camera, or both')
+      })
+
+      it('has media category', () => {
+        const videoRecorder = registry.get('videoRecorder')
+
+        expect(videoRecorder?.category).toBe('media')
+      })
+
+      it('has appropriate tags', () => {
+        const videoRecorder = registry.get('videoRecorder')
+
+        expect(videoRecorder?.tags).toContain('video')
+        expect(videoRecorder?.tags).toContain('recording')
+        expect(videoRecorder?.tags).toContain('media')
+        expect(videoRecorder?.tags).toContain('screen')
+        expect(videoRecorder?.tags).toContain('camera')
+      })
+
+      it('has correct default props', () => {
+        const videoRecorder = registry.get('videoRecorder')
+
+        expect(videoRecorder?.defaultProps).toEqual({
+          mode: 'screen',
+          audio: true,
+          quality: 'medium',
+        })
+      })
+    })
+
+    describe('videoCall component', () => {
+      it('is registered in standard catalog', () => {
+        expect(registry.has('videoCall')).toBe(true)
+      })
+
+      it('has correct display name and description', () => {
+        const videoCall = registry.get('videoCall')
+
+        expect(videoCall?.displayName).toBe('Video Call')
+        expect(videoCall?.description).toBe('Real-time video conferencing')
+      })
+
+      it('has communication category', () => {
+        const videoCall = registry.get('videoCall')
+
+        expect(videoCall?.category).toBe('communication')
+      })
+
+      it('has appropriate tags', () => {
+        const videoCall = registry.get('videoCall')
+
+        expect(videoCall?.tags).toContain('video')
+        expect(videoCall?.tags).toContain('call')
+        expect(videoCall?.tags).toContain('communication')
+        expect(videoCall?.tags).toContain('webrtc')
+        expect(videoCall?.tags).toContain('conferencing')
+      })
+
+      it('has correct default props', () => {
+        const videoCall = registry.get('videoCall')
+
+        expect(videoCall?.defaultProps).toEqual({
+          layout: 'grid',
+          features: {
+            chat: true,
+            screenShare: true,
+            recording: false,
+          },
+        })
+      })
+    })
+
+    describe('aiVideo component', () => {
+      it('is registered in standard catalog', () => {
+        expect(registry.has('aiVideo')).toBe(true)
+      })
+
+      it('has correct display name and description', () => {
+        const aiVideo = registry.get('aiVideo')
+
+        expect(aiVideo?.displayName).toBe('AI Video')
+        expect(aiVideo?.description).toBe('AI-generated video from prompts')
+      })
+
+      it('has generation category', () => {
+        const aiVideo = registry.get('aiVideo')
+
+        expect(aiVideo?.category).toBe('generation')
+      })
+
+      it('has appropriate tags', () => {
+        const aiVideo = registry.get('aiVideo')
+
+        expect(aiVideo?.tags).toContain('video')
+        expect(aiVideo?.tags).toContain('ai')
+        expect(aiVideo?.tags).toContain('generation')
+        expect(aiVideo?.tags).toContain('media')
+      })
+
+      it('has correct default props', () => {
+        const aiVideo = registry.get('aiVideo')
+
+        expect(aiVideo?.defaultProps).toEqual({
+          streaming: false,
+        })
+      })
+    })
+
+    describe('aiVideoPlayer component', () => {
+      it('is registered in standard catalog', () => {
+        expect(registry.has('aiVideoPlayer')).toBe(true)
+      })
+
+      it('has correct display name and description', () => {
+        const aiVideoPlayer = registry.get('aiVideoPlayer')
+
+        expect(aiVideoPlayer?.displayName).toBe('AI Video Player')
+        expect(aiVideoPlayer?.description).toBe(
+          'Interactive AI-aware video player'
+        )
+      })
+
+      it('has media category', () => {
+        const aiVideoPlayer = registry.get('aiVideoPlayer')
+
+        expect(aiVideoPlayer?.category).toBe('media')
+      })
+
+      it('has appropriate tags', () => {
+        const aiVideoPlayer = registry.get('aiVideoPlayer')
+
+        expect(aiVideoPlayer?.tags).toContain('video')
+        expect(aiVideoPlayer?.tags).toContain('player')
+        expect(aiVideoPlayer?.tags).toContain('ai')
+        expect(aiVideoPlayer?.tags).toContain('interactive')
+        expect(aiVideoPlayer?.tags).toContain('media')
+      })
+
+      it('has correct default props', () => {
+        const aiVideoPlayer = registry.get('aiVideoPlayer')
+
+        expect(aiVideoPlayer?.defaultProps).toEqual({
+          interactive: {
+            allowQuestions: true,
+            conversationalControl: false,
+            smartChapters: true,
+          },
+        })
+      })
+    })
+
+    describe('video component search', () => {
+      it('finds all video components by video tag', () => {
+        const videoComponents = registry.searchByTag('video')
+
+        expect(videoComponents).toHaveLength(5)
+        expect(videoComponents.map((c) => c.type)).toContain('video')
+        expect(videoComponents.map((c) => c.type)).toContain('videoRecorder')
+        expect(videoComponents.map((c) => c.type)).toContain('videoCall')
+        expect(videoComponents.map((c) => c.type)).toContain('aiVideo')
+        expect(videoComponents.map((c) => c.type)).toContain('aiVideoPlayer')
+      })
+
+      it('finds AI video components by ai tag', () => {
+        const aiComponents = registry.searchByTag('ai')
+
+        expect(aiComponents).toHaveLength(2)
+        expect(aiComponents.map((c) => c.type)).toContain('aiVideo')
+        expect(aiComponents.map((c) => c.type)).toContain('aiVideoPlayer')
+      })
+
+      it('finds video components in media category', () => {
+        const mediaComponents = registry.getByCategory('media')
+
+        expect(mediaComponents.map((c) => c.type)).toContain('image')
+        expect(mediaComponents.map((c) => c.type)).toContain('video')
+        expect(mediaComponents.map((c) => c.type)).toContain('audioPlayer')
+        expect(mediaComponents.map((c) => c.type)).toContain('videoRecorder')
+        expect(mediaComponents.map((c) => c.type)).toContain('aiVideoPlayer')
+      })
+
+      it('finds videoCall in communication category', () => {
+        const communicationComponents = registry.getByCategory('communication')
+
+        expect(communicationComponents).toHaveLength(1)
+        expect(communicationComponents.map((c) => c.type)).toContain('videoCall')
+      })
+
+      it('finds aiVideo in generation category', () => {
+        const generationComponents = registry.getByCategory('generation')
+
+        expect(generationComponents).toHaveLength(1)
+        expect(generationComponents.map((c) => c.type)).toContain('aiVideo')
+      })
     })
   })
 })
