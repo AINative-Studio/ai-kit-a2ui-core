@@ -3,7 +3,7 @@
  */
 
 /**
- * All 17 standard A2UI component types
+ * All standard A2UI component types (21 types including video components)
  */
 export type ComponentType =
   | 'card'
@@ -24,6 +24,10 @@ export type ComponentType =
   | 'audioPlayer'
   | 'icon'
   | 'divider'
+  | 'videoRecorder'
+  | 'videoCall'
+  | 'aiVideo'
+  | 'aiVideoPlayer'
 
 /**
  * Base component structure
@@ -169,5 +173,61 @@ export interface ComponentProperties {
     orientation?: 'horizontal' | 'vertical'
     thickness?: string | number
     color?: string
+  }
+  videoRecorder: {
+    mode: 'screen' | 'camera' | 'pip'
+    audio?: boolean
+    quality?: 'low' | 'medium' | 'high'
+    ai?: {
+      transcribe?: boolean
+      highlights?: boolean
+      summary?: boolean
+      zerodb?: boolean
+    }
+    onStart?: string
+    onComplete?: string
+    onError?: string
+  }
+  videoCall: {
+    roomId: string
+    layout?: 'grid' | 'speaker' | 'sidebar'
+    features?: {
+      chat?: boolean
+      screenShare?: boolean
+      recording?: boolean
+    }
+    ai?: {
+      liveTranscription?: boolean
+      liveCaptions?: boolean
+      translation?: string
+      noiseCancellation?: boolean
+      speakerIdentification?: boolean
+      actionItemDetection?: boolean
+    }
+    onJoin?: string
+    onLeave?: string
+    onError?: string
+  }
+  aiVideo: {
+    prompt?: string
+    template?: string
+    data?: Record<string, unknown>
+    voice?: string
+    streaming?: boolean
+    onProgress?: string
+    onComplete?: string
+    onError?: string
+  }
+  aiVideoPlayer: {
+    videoUrl: string
+    transcript?: string
+    interactive?: {
+      allowQuestions?: boolean
+      conversationalControl?: boolean
+      smartChapters?: boolean
+      semanticSearch?: boolean
+    }
+    onProgress?: string
+    onQuestion?: string
   }
 }

@@ -18,7 +18,7 @@ export interface ComponentDefinition {
   /** Default properties */
   defaultProps?: Record<string, unknown>
   /** Category for grouping */
-  category?: 'layout' | 'content' | 'input' | 'media' | 'misc'
+  category?: 'layout' | 'content' | 'input' | 'media' | 'misc' | 'communication' | 'generation'
   /** Tags for search */
   tags?: string[]
 }
@@ -87,8 +87,8 @@ export class ComponentRegistry {
   }
 
   /**
-   * Get standard A2UI v0.9 component registry
-   * Pre-loaded with all 17 standard components
+   * Get standard A2UI component registry
+   * Pre-loaded with 22 components (18 standard v0.9 + 4 video components v0.10)
    */
   static standard(): ComponentRegistry {
     const registry = new ComponentRegistry()
@@ -324,6 +324,62 @@ export class ComponentRegistry {
       defaultProps: {
         name: 'star',
         size: 24,
+      },
+    })
+
+    // Video components (A2UI v0.10)
+    registry.register('videoRecorder', {
+      type: 'videoRecorder',
+      displayName: 'Video Recorder',
+      description: 'Record screen, camera, or both',
+      category: 'media',
+      tags: ['video', 'recording', 'media', 'screen', 'camera'],
+      defaultProps: {
+        mode: 'screen',
+        audio: true,
+        quality: 'medium',
+      },
+    })
+
+    registry.register('videoCall', {
+      type: 'videoCall',
+      displayName: 'Video Call',
+      description: 'Real-time video conferencing',
+      category: 'communication',
+      tags: ['video', 'call', 'communication', 'webrtc', 'conferencing'],
+      defaultProps: {
+        layout: 'grid',
+        features: {
+          chat: true,
+          screenShare: true,
+          recording: false,
+        },
+      },
+    })
+
+    registry.register('aiVideo', {
+      type: 'aiVideo',
+      displayName: 'AI Video',
+      description: 'AI-generated video from prompts',
+      category: 'generation',
+      tags: ['video', 'ai', 'generation', 'media'],
+      defaultProps: {
+        streaming: false,
+      },
+    })
+
+    registry.register('aiVideoPlayer', {
+      type: 'aiVideoPlayer',
+      displayName: 'AI Video Player',
+      description: 'Interactive AI-aware video player',
+      category: 'media',
+      tags: ['video', 'player', 'ai', 'interactive', 'media'],
+      defaultProps: {
+        interactive: {
+          allowQuestions: true,
+          conversationalControl: false,
+          smartChapters: true,
+        },
       },
     })
 
