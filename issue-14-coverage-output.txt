@@ -1,0 +1,27 @@
+
+ RUN  v1.6.1 /Users/aideveloper/ai-kit-a2ui-core
+      Coverage enabled with v8
+
+ ✓ tests/transport/video-transport.test.ts  (14 tests) 271ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  15:30:27
+   Duration  612ms (transform 52ms, setup 0ms, collect 55ms, tests 271ms, environment 0ms, prepare 72ms)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   12.58 |    69.76 |   66.66 |   12.58 |                   
+ json-pointer      |       0 |        0 |       0 |       0 |                   
+  json-pointer.ts  |       0 |        0 |       0 |       0 | 1-300             
+ registry          |       0 |        0 |       0 |       0 |                   
+  registry.ts      |       0 |        0 |       0 |       0 | 1-332             
+ transport         |   84.36 |    78.94 |   81.81 |   84.36 |                   
+  transport.ts     |   84.36 |    78.94 |   81.81 |   84.36 | ...78-286,292-296 
+ types             |       0 |        0 |       0 |       0 |                   
+  protocol.ts      |       0 |        0 |       0 |       0 | 1-206             
+  validation.ts    |       0 |        0 |       0 |       0 | 1-595             
+  ...o-protocol.ts |       0 |        0 |       0 |       0 | 1-318             
+-------------------|---------|----------|---------|---------|-------------------

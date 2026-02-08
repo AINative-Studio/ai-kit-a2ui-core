@@ -1,0 +1,10 @@
+
+ RUN  v1.6.1 /Users/aideveloper/ai-kit-a2ui-core
+
+ ✓ tests/transport/video-transport.test.ts  (14 tests) 256ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  15:30:07
+   Duration  462ms (transform 44ms, setup 0ms, collect 50ms, tests 256ms, environment 0ms, prepare 49ms)
+

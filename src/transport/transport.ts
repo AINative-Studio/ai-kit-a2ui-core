@@ -3,7 +3,17 @@
  * Framework-agnostic agent communication
  */
 
-import type { A2UIMessage } from '../types/index.js'
+import type {
+  A2UIMessage,
+  CreateSurfaceMessage,
+  UpdateComponentsMessage,
+  UpdateDataModelMessage,
+  DeleteSurfaceMessage,
+  UserActionMessage,
+  ErrorMessage,
+  SearchVideosMessage,
+  SearchResultsMessage,
+} from '../types/index.js'
 
 /**
  * Transport connection status
@@ -137,6 +147,20 @@ export class A2UITransport {
   /**
    * Register an event handler
    */
+  on(event: 'statusChange', handler: EventHandler<TransportStatus>): void
+  on(event: 'connect', handler: EventHandler<undefined>): void
+  on(event: 'disconnect', handler: EventHandler<undefined>): void
+  on(event: 'reconnecting', handler: EventHandler<number>): void
+  on(event: 'error', handler: EventHandler<Error>): void
+  on(event: 'message', handler: EventHandler<A2UIMessage>): void
+  on(event: 'createSurface', handler: EventHandler<CreateSurfaceMessage>): void
+  on(event: 'updateComponents', handler: EventHandler<UpdateComponentsMessage>): void
+  on(event: 'updateDataModel', handler: EventHandler<UpdateDataModelMessage>): void
+  on(event: 'deleteSurface', handler: EventHandler<DeleteSurfaceMessage>): void
+  on(event: 'userAction', handler: EventHandler<UserActionMessage>): void
+  on(event: 'searchVideos', handler: EventHandler<SearchVideosMessage>): void
+  on(event: 'searchResults', handler: EventHandler<SearchResultsMessage>): void
+  on<T = unknown>(event: string, handler: EventHandler<T>): void
   on<T = unknown>(event: string, handler: EventHandler<T>): void {
     if (!this.handlers.has(event)) {
       this.handlers.set(event, new Set())
@@ -147,6 +171,20 @@ export class A2UITransport {
   /**
    * Unregister an event handler
    */
+  off(event: 'statusChange', handler: EventHandler<TransportStatus>): void
+  off(event: 'connect', handler: EventHandler<undefined>): void
+  off(event: 'disconnect', handler: EventHandler<undefined>): void
+  off(event: 'reconnecting', handler: EventHandler<number>): void
+  off(event: 'error', handler: EventHandler<Error>): void
+  off(event: 'message', handler: EventHandler<A2UIMessage>): void
+  off(event: 'createSurface', handler: EventHandler<CreateSurfaceMessage>): void
+  off(event: 'updateComponents', handler: EventHandler<UpdateComponentsMessage>): void
+  off(event: 'updateDataModel', handler: EventHandler<UpdateDataModelMessage>): void
+  off(event: 'deleteSurface', handler: EventHandler<DeleteSurfaceMessage>): void
+  off(event: 'userAction', handler: EventHandler<UserActionMessage>): void
+  off(event: 'searchVideos', handler: EventHandler<SearchVideosMessage>): void
+  off(event: 'searchResults', handler: EventHandler<SearchResultsMessage>): void
+  off<T = unknown>(event: string, handler: EventHandler<T>): void
   off<T = unknown>(event: string, handler: EventHandler<T>): void {
     const handlers = this.handlers.get(event)
     if (handlers) {

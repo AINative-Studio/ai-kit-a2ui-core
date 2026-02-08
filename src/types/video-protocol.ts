@@ -18,6 +18,8 @@ export type VideoMessageType =
   | 'generateVideo'
   | 'videoGenerationProgress'
   | 'videoGenerationComplete'
+  | 'searchVideos'
+  | 'searchResults'
 
 /**
  * Recording mode options
@@ -246,6 +248,146 @@ export interface VideoGenerationCompleteMessage extends BaseMessage {
 }
 
 // ============================================================================
+// Semantic Video Search Messages (Issue #26 - Epic 2)
+// ============================================================================
+
+/**
+ * Video search filter options
+ */
+export interface VideoSearchFilters {
+  /** Filter by video duration range in seconds */
+  duration?: {
+    /** Minimum duration */
+    min?: number
+    /** Maximum duration */
+    max?: number
+  }
+  /** Filter by upload date range */
+  uploadedAfter?: string
+  /** Filter before date (ISO 8601) */
+  uploadedBefore?: string
+  /** Filter by user/uploader ID */
+  uploaderId?: string
+  /** Filter by tags */
+  tags?: string[]
+  /** Filter by quality */
+  quality?: VideoQuality[]
+  /** Filter by recording mode */
+  recordingMode?: RecordingMode[]
+}
+
+/**
+ * Vector query for semantic search
+ */
+export interface VectorQuery {
+  /** Query text for semantic embedding */
+  text?: string
+  /** Pre-computed embedding vector */
+  embedding?: number[]
+  /** Number of results to return */
+  topK?: number
+  /** Minimum similarity threshold (0-1) */
+  minSimilarity?: number
+}
+
+/**
+ * Search Videos Message (Agent → Renderer)
+ * Agent requests semantic video search using vector similarity
+ */
+export interface SearchVideosMessage extends BaseMessage {
+  type: 'searchVideos'
+  /** Surface identifier */
+  surfaceId: string
+  /** Unique search identifier */
+  searchId: string
+  /** Search query text */
+  query: string
+  /** Optional vector query for semantic search */
+  vectorQuery?: VectorQuery
+  /** Optional search filters */
+  filters?: VideoSearchFilters
+  /** Maximum number of results */
+  limit?: number
+  /** Offset for pagination */
+  offset?: number
+}
+
+/**
+ * Video search result with relevance scoring
+ */
+export interface VideoSearchResult {
+  /** Video identifier */
+  videoId: string
+  /** Video title */
+  title: string
+  /** Video description */
+  description?: string
+  /** Video URL */
+  videoUrl: string
+  /** Thumbnail URL */
+  thumbnailUrl?: string
+  /** Video duration in seconds */
+  duration: number
+  /** Upload timestamp (ISO 8601) */
+  uploadedAt: string
+  /** Uploader/creator ID */
+  uploaderId?: string
+  /** Relevance score (0-1) */
+  relevanceScore: number
+  /** Vector similarity score (0-1) */
+  similarityScore?: number
+  /** Relevant timestamps in the video */
+  relevantTimestamps?: Array<{
+    /** Timestamp in seconds */
+    timestamp: number
+    /** Confidence score (0-1) */
+    confidence: number
+    /** Optional description of what's at this timestamp */
+    description?: string
+  }>
+  /** Video metadata */
+  metadata?: {
+    /** Transcript excerpt matching query */
+    transcriptExcerpt?: string
+    /** AI-generated summary */
+    summary?: string
+    /** Tags */
+    tags?: string[]
+    /** Topics detected */
+    topics?: string[]
+    /** Video quality */
+    quality?: VideoQuality
+  }
+}
+
+/**
+ * Search Results Message (Renderer → Agent)
+ * Returns search results with relevance scores
+ */
+export interface SearchResultsMessage extends BaseMessage {
+  type: 'searchResults'
+  /** Surface identifier */
+  surfaceId: string
+  /** Search identifier matching the request */
+  searchId: string
+  /** Search results ordered by relevance */
+  results: VideoSearchResult[]
+  /** Total number of results available */
+  totalResults: number
+  /** Query that was executed */
+  query: string
+  /** Whether semantic search was used */
+  isSemanticSearch: boolean
+  /** Optional search performance metrics */
+  metrics?: {
+    /** Search execution time in milliseconds */
+    executionTime: number
+    /** Number of vectors searched */
+    vectorsSearched?: number
+  }
+}
+
+// ============================================================================
 // Union Types
 // ============================================================================
 
@@ -262,6 +404,8 @@ export type VideoMessage =
   | GenerateVideoMessage
   | VideoGenerationProgressMessage
   | VideoGenerationCompleteMessage
+  | SearchVideosMessage
+  | SearchResultsMessage
 
 // ============================================================================
 // Type Guards
@@ -303,6 +447,14 @@ export function isVideoGenerationCompleteMessage(msg: unknown): msg is VideoGene
   return typeof msg === 'object' && msg !== null && (msg as any).type === 'videoGenerationComplete'
 }
 
+export function isSearchVideosMessage(msg: unknown): msg is SearchVideosMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'searchVideos'
+}
+
+export function isSearchResultsMessage(msg: unknown): msg is SearchResultsMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'searchResults'
+}
+
 export function isVideoMessage(msg: unknown): msg is VideoMessage {
   return (
     isRequestRecordingMessage(msg) ||
@@ -313,6 +465,8 @@ export function isVideoMessage(msg: unknown): msg is VideoMessage {
     isVideoCallEndedMessage(msg) ||
     isGenerateVideoMessage(msg) ||
     isVideoGenerationProgressMessage(msg) ||
-    isVideoGenerationCompleteMessage(msg)
+    isVideoGenerationCompleteMessage(msg) ||
+    isSearchVideosMessage(msg) ||
+    isSearchResultsMessage(msg)
   )
 }

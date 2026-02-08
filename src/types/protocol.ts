@@ -16,6 +16,8 @@ export type MessageType =
   | 'error'
   | 'ping'
   | 'pong'
+  | 'searchVideos'
+  | 'searchResults'
 
 /**
  * Base message structure
@@ -146,6 +148,117 @@ export interface PongMessage extends BaseMessage {
 }
 
 /**
+ * Video search filter options
+ */
+export interface VideoSearchFilters {
+  /** Filter by video duration range in seconds */
+  durationRange?: {
+    min?: number
+    max?: number
+  }
+  /** Filter by upload date range */
+  dateRange?: {
+    from?: string
+    to?: string
+  }
+  /** Filter by tags */
+  tags?: string[]
+  /** Filter by user/author */
+  author?: string
+  /** Filter by video status */
+  status?: 'processing' | 'ready' | 'error'
+  /** Maximum number of results to return */
+  limit?: number
+  /** Offset for pagination */
+  offset?: number
+}
+
+/**
+ * Video search result item
+ */
+export interface VideoSearchResult {
+  /** Video identifier */
+  videoId: string
+  /** Video title */
+  title: string
+  /** Video description */
+  description?: string
+  /** Relevance score (0-1) */
+  relevanceScore: number
+  /** Video duration in seconds */
+  duration?: number
+  /** Video thumbnail URL */
+  thumbnailUrl?: string
+  /** Upload timestamp */
+  uploadedAt?: string
+  /** Video author/user */
+  author?: string
+  /** Video tags */
+  tags?: string[]
+  /** Relevant timestamps matching the query */
+  relevantTimestamps?: Array<{
+    /** Timestamp in seconds */
+    time: number
+    /** Context/snippet at this timestamp */
+    context: string
+    /** Relevance score for this timestamp */
+    score: number
+  }>
+  /** AI-generated metadata */
+  metadata?: {
+    /** Video transcript */
+    transcript?: string
+    /** Video summary */
+    summary?: string
+    /** Video topics */
+    topics?: string[]
+    /** Sentiment analysis */
+    sentiment?: 'positive' | 'neutral' | 'negative'
+  }
+}
+
+/**
+ * Search Videos Message (UI → Agent or Agent → Backend)
+ * Request semantic search of videos
+ */
+export interface SearchVideosMessage extends BaseMessage {
+  type: 'searchVideos'
+  /** Search query (supports semantic search) */
+  query: string
+  /** Optional search filters */
+  filters?: VideoSearchFilters
+  /** Search context (e.g., surface ID where search was initiated) */
+  context?: {
+    surfaceId?: string
+    userId?: string
+    sessionId?: string
+  }
+}
+
+/**
+ * Search Results Message (Agent → UI or Backend → Agent)
+ * Return semantic search results
+ */
+export interface SearchResultsMessage extends BaseMessage {
+  type: 'searchResults'
+  /** Original search query */
+  query: string
+  /** Search results */
+  results: VideoSearchResult[]
+  /** Total number of results available */
+  totalResults: number
+  /** Search execution time in milliseconds */
+  executionTime?: number
+  /** Search algorithm used */
+  searchType?: 'semantic' | 'keyword' | 'hybrid'
+  /** Error information if search failed */
+  error?: {
+    code: string
+    message: string
+  }
+}
+
+/**
  * Union of all message types
  */
 export type A2UIMessage =
@@ -157,6 +270,8 @@ export type A2UIMessage =
   | ErrorMessage
   | PingMessage
   | PongMessage
+  | SearchVideosMessage
+  | SearchResultsMessage
 
 /**
  * Type guards for message discrimination
@@ -191,4 +306,12 @@ export function isPingMessage(msg: A2UIMessage): msg is PingMessage {
 
 export function isPongMessage(msg: A2UIMessage): msg is PongMessage {
   return msg.type === 'pong'
+}
+
+export function isSearchVideosMessage(msg: A2UIMessage): msg is SearchVideosMessage {
+  return msg.type === 'searchVideos'
+}
+
+export function isSearchResultsMessage(msg: A2UIMessage): msg is SearchResultsMessage {
+  return msg.type === 'searchResults'
 }
