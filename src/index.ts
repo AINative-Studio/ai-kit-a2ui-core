@@ -11,10 +11,19 @@ export * from './types/index.js'
 export * from './json-pointer/index.js'
 
 // WebSocket Transport
-export * from './transport/index.js'
+export { A2UITransport } from './transport/index.js'
+export type { TransportStatus, TransportOptions, EventHandler } from './transport/index.js'
 
 // Component Registry
 export * from './registry/index.js'
+
+// Message Handlers
+export {
+  VideoMessageHandler,
+  RecordingMessageHandler,
+  VideoCallMessageHandler,
+  VideoGenerationMessageHandler,
+} from './handlers/index.js'
 
 // Version
 export const VERSION = '0.1.0-alpha.1'
