@@ -192,3 +192,11 @@ export function isPingMessage(msg: A2UIMessage): msg is PingMessage {
 export function isPongMessage(msg: A2UIMessage): msg is PongMessage {
   return msg.type === 'pong'
 }
+
+export function isSearchVideosMessage(msg: A2UIMessage): msg is SearchVideosMessage {
+  return msg.type === 'searchVideos'
+}
+
+export function isSearchResultsMessage(msg: A2UIMessage): msg is SearchResultsMessage {
+  return msg.type === 'searchResults'
+}

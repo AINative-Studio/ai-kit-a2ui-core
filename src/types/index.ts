@@ -24,6 +24,10 @@ export type {
   ErrorMessage,
   PingMessage,
   PongMessage,
+  VideoSearchFilters,
+  VideoSearchResult,
+  SearchVideosMessage,
+  SearchResultsMessage,
   A2UIMessage,
 } from './protocol.js'
 
@@ -37,4 +41,6 @@ export {
   isErrorMessage,
   isPingMessage,
   isPongMessage,
+  isSearchVideosMessage,
+  isSearchResultsMessage,
 } from './protocol.js'
