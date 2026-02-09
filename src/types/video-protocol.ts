@@ -246,6 +246,115 @@ export interface VideoGenerationCompleteMessage extends BaseMessage {
 }
 
 // ============================================================================
+
+// ============================================================================
+// Progress Tracking Messages (Issue #31 - Epic 2)
+// ============================================================================
+
+/**
+ * Progress tracking category
+ * Identifies what type of operation is being tracked
+ */
+export type ProgressCategory = 'recording' | 'videoCall' | 'videoGeneration' | 'upload' | 'processing'
+
+/**
+ * Progress state enumeration
+ */
+export type ProgressState = 'queued' | 'active' | 'paused' | 'complete' | 'failed' | 'cancelled'
+
+/**
+ * Progress Update Message (Bidirectional)
+ * Generic progress tracking for long-running operations
+ */
+export interface ProgressUpdateMessage extends BaseMessage {
+  type: 'progressUpdate'
+  /** Surface identifier */
+  surfaceId: string
+  /** Unique operation identifier */
+  operationId: string
+  /** Progress category */
+  category: ProgressCategory
+  /** Current state */
+  state: ProgressState
+  /** Progress percentage 0-100 */
+  progress: number
+  /** Current step description */
+  currentStep?: string
+  /** Total number of steps */
+  totalSteps?: number
+  /** Current step number */
+  currentStepNumber?: number
+  /** Estimated time remaining in seconds */
+  estimatedTimeRemaining?: number
+  /** Metadata specific to the operation */
+  metadata?: Record<string, unknown>
+}
+
+/**
+ * Progress Sync Message (Bidirectional)
+ * Synchronizes progress state across devices
+ */
+export interface ProgressSyncMessage extends BaseMessage {
+  type: 'progressSync'
+  /** User identifier for cross-device sync */
+  userId: string
+  /** List of active operations with their progress */
+  operations: Array<{
+    /** Operation identifier */
+    operationId: string
+    /** Surface identifier */
+    surfaceId: string
+    /** Progress category */
+    category: ProgressCategory
+    /** Current state */
+    state: ProgressState
+    /** Progress percentage 0-100 */
+    progress: number
+    /** Timestamp of last update (ISO 8601) */
+    lastUpdated: string
+  }>
+  /** Sync timestamp (ISO 8601) */
+  syncTimestamp: string
+}
+
+/**
+ * Progress Cancel Message (UI → Agent)
+ * Request to cancel a running operation
+ */
+export interface ProgressCancelMessage extends BaseMessage {
+  type: 'progressCancel'
+  /** Surface identifier */
+  surfaceId: string
+  /** Operation identifier to cancel */
+  operationId: string
+  /** Optional cancellation reason */
+  reason?: string
+}
+
+/**
+ * Progress Pause Message (UI → Agent)
+ * Request to pause a running operation
+ */
+export interface ProgressPauseMessage extends BaseMessage {
+  type: 'progressPause'
+  /** Surface identifier */
+  surfaceId: string
+  /** Operation identifier to pause */
+  operationId: string
+}
+
+/**
+ * Progress Resume Message (UI → Agent)
+ * Request to resume a paused operation
+ */
+export interface ProgressResumeMessage extends BaseMessage {
+  type: 'progressResume'
+  /** Surface identifier */
+  surfaceId: string
+  /** Operation identifier to resume */
+  operationId: string
+}
+
 // Union Types
 // ============================================================================
 
@@ -262,6 +371,12 @@ export type VideoMessage =
   | GenerateVideoMessage
   | VideoGenerationProgressMessage
   | VideoGenerationCompleteMessage
+
+  | ProgressUpdateMessage
+  | ProgressSyncMessage
+  | ProgressCancelMessage
+  | ProgressPauseMessage
+  | ProgressResumeMessage
 
 // ============================================================================
 // Type Guards
@@ -303,6 +418,32 @@ export function isVideoGenerationCompleteMessage(msg: unknown): msg is VideoGene
   return typeof msg === 'object' && msg !== null && (msg as any).type === 'videoGenerationComplete'
 }
 
+
+export function isProgressUpdateMessage(msg: unknown): msg is ProgressUpdateMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'progressUpdate'
+}
+
+export function isProgressSyncMessage(msg: unknown): msg is ProgressSyncMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'progressSync'
+}
+
+export function isProgressCancelMessage(msg: unknown): msg is ProgressCancelMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'progressCancel'
+}
+
+export function isProgressPauseMessage(msg: unknown): msg is ProgressPauseMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'progressPause'
+}
+
+export function isProgressResumeMessage(msg: unknown): msg is ProgressResumeMessage {
+  return typeof msg === 'object' && msg !== null && (msg as any).type === 'progressResume'
+}
+
+    isProgressUpdateMessage(msg) ||
+    isProgressSyncMessage(msg) ||
+    isProgressCancelMessage(msg) ||
+    isProgressPauseMessage(msg) ||
+    isProgressResumeMessage(msg) ||
 export function isVideoMessage(msg: unknown): msg is VideoMessage {
   return (
     isRequestRecordingMessage(msg) ||
