@@ -38,3 +38,37 @@ export {
   isPingMessage,
   isPongMessage,
 } from './protocol.js'
+
+// AI Metadata State Types (Issue #28)
+export type {
+  TranscriptSegment,
+  TranscriptMetadata,
+  SummaryType,
+  SummaryMetadata,
+  TopicCategory,
+  Topic,
+  TopicMetadata,
+  HighlightType,
+  Highlight,
+  HighlightMetadata,
+  Chapter,
+  ChapterMetadata,
+  SentimentType,
+  SentimentScore,
+  SentimentTimestamp,
+  EmotionDetection,
+  SentimentMetadata,
+  AIMetadataProcessingState,
+  AIMetadataState,
+} from './ai-metadata-state.js'
+
+// AI Metadata Type Guards
+export {
+  isTranscriptMetadata,
+  isSummaryMetadata,
+  isTopicMetadata,
+  isHighlightMetadata,
+  isChapterMetadata,
+  isSentimentMetadata,
+  isAIMetadataState,
+} from './ai-metadata-state.js'
