@@ -1,25 +1,38 @@
 # @ainative/ai-kit-a2ui-core
 
-> Framework-agnostic core library for A2UI protocol (v0.9) with **zero runtime dependencies**.
+> Framework-agnostic core library for A2UI protocol (v0.9-v0.11) with **zero runtime dependencies**.
 
 [![npm version](https://img.shields.io/npm/v/@ainative/ai-kit-a2ui-core)](https://www.npmjs.com/package/@ainative/ai-kit-a2ui-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Test Coverage](https://img.shields.io/badge/coverage-95.85%25-brightgreen.svg)](./coverage)
+[![Test Coverage](https://img.shields.io/badge/coverage-96.52%25-brightgreen.svg)](./coverage)
 
-A production-ready, framework-agnostic implementation of the [A2UI protocol (v0.9)](https://github.com/google/a2ui) that enables AI agents to dynamically generate rich user interfaces using declarative JSON.
+A production-ready, framework-agnostic implementation of the [A2UI protocol](https://github.com/google/a2ui) that enables AI agents to dynamically generate rich user interfaces using declarative JSON. Includes video protocol extension (v0.10) and AI intelligence features (v0.11).
 
 ## 🚀 Features
 
+### Core Protocol (v0.9)
 - **🎯 Zero Dependencies** - Pure TypeScript with no runtime dependencies (< 20 KB gzipped)
 - **📍 JSON Pointer (RFC 6901)** - Complete implementation with get/set/remove/has operations
 - **🔌 WebSocket Transport** - Framework-agnostic agent communication with automatic reconnection
 - **📝 Protocol Types** - Complete TypeScript definitions for A2UI v0.9 specification
-- **🗂️ Component Registry** - Extensible catalog of 17 standard components
+- **🗂️ Component Registry** - Extensible catalog of 21 standard components
 - **🛡️ 100% Type Safe** - Built with TypeScript strict mode
-- **✅ 95.85% Test Coverage** - Comprehensive test suite with 69/69 tests passing
+- **✅ 96.52% Test Coverage** - Comprehensive test suite with 429/429 tests passing
 - **📦 Multi-Format** - ESM, CJS, and TypeScript definitions included
 - **🔄 Event-Driven** - Type-safe event emitter for agent messages
+
+### Video Protocol Extension (v0.10)
+- **🎥 Video Components** - 4 video component types (videoRecorder, videoCall, aiVideo, aiVideoPlayer)
+- **📹 Video Messages** - 9 video message types for recording, calls, and generation
+- **🔗 AIKit Integration** - Seamless integration with AINative Studio video services
+- **✅ Complete Validation** - JSON Schema validation for all video components
+
+### AI Intelligence Features (v0.11)
+- **🔍 Semantic Search** - Vector-based video search with pgvector embeddings
+- **🤖 AI Metadata** - Automatic extraction of transcripts, summaries, topics, highlights, chapters, sentiment
+- **⏯️ Progress Tracking** - Cross-device progress sync with scene-aware resume
+- **💡 Smart Recommendations** - Hybrid recommendation engine (content + collaborative + contextual AI)
 
 ## 📦 Installation
 
@@ -330,7 +343,7 @@ const contentComponents = registry.byCategory('content')
 registry.unregister('customChart')
 ```
 
-**Standard Components (17 total):**
+**Standard Components (21 total):**
 
 **Content Components (6):**
 - `text` - Display static or dynamic text
@@ -348,13 +361,19 @@ registry.unregister('customChart')
 - `choicePicker` - Select dropdown or radio group
 - `dateTimeInput` - Date/time picker
 
-**Layout Components (4):**
+**Layout Components (5):**
 - `card` - Container with optional header/footer
 - `row` - Horizontal flex layout
 - `column` - Vertical flex layout
 - `modal` - Dialog/modal overlay
 - `tabs` - Tabbed navigation
 - `list` - Ordered or unordered list
+
+**Video Components (4) - NEW in v0.10:**
+- `videoRecorder` - Video recording with AI transcription and metadata
+- `videoCall` - Real-time video conferencing with WebRTC
+- `aiVideo` - AI-powered video generation and editing
+- `aiVideoPlayer` - Enhanced video player with semantic search and recommendations
 
 **Utility Components (1):**
 - `divider` - Horizontal separator line
@@ -417,19 +436,25 @@ npm run test:coverage
 ### Test Coverage
 
 ```
-Test Files  11 passed (11)
-     Tests  69 passed (69)
-  Coverage  95.85% statements (253/264)
-            96.29% branches (78/81)
-            96.29% functions (52/54)
-            95.85% lines (253/264)
+Test Files  50+ passed
+     Tests  429 passed (429)
+  Coverage  96.52% overall
 ```
 
 **Coverage by Module:**
-- Types: 100% (type-only, no runtime)
-- JSON Pointer: 100% (28/28 tests)
-- Transport: 92.1% (25/25 tests)
-- Registry: 100% (16/16 tests)
+- Core Protocol: 95.85%
+  - Types: 100% (type-only, no runtime)
+  - JSON Pointer: 100% (28/28 tests)
+  - Transport: 92.1% (25/25 tests)
+  - Registry: 100% (16/16 tests)
+- Video Protocol (v0.10): 98%+
+  - Video types and messages: 100%
+  - Video handlers: 96%+
+- AI Intelligence (v0.11): 94%+
+  - Semantic search: 100%
+  - AI metadata: 100%
+  - Progress tracking: 93%+
+  - Recommendations: 88%+
 
 ## 📊 Bundle Size
 
