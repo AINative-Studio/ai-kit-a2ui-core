@@ -3,7 +3,7 @@
  */
 
 /**
- * All standard A2UI component types (22 types including video and file upload components)
+ * All standard A2UI component types (25 types including notification components)
  */
 export type ComponentType =
   | 'card'
@@ -29,6 +29,9 @@ export type ComponentType =
   | 'aiVideo'
   | 'aiVideoPlayer'
   | 'fileUpload'
+  | 'notificationCenter'
+  | 'notificationItem'
+  | 'notificationBadge'
 
 /**
  * Base component structure
@@ -249,5 +252,71 @@ export interface ComponentProperties {
     onUploadProgress?: string
     onUploadComplete?: string
     onUploadError?: string
+  }
+  notificationCenter: {
+    maxVisible?: number
+    position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center'
+    autoHide?: boolean
+    autoHideDuration?: number
+    groupBy?: 'none' | 'type' | 'priority' | 'category' | 'date'
+    filterType?: Array<'all' | 'unread' | 'read' | 'info' | 'success' | 'warning' | 'error' | 'system'>
+    showBadge?: boolean
+    sound?: boolean
+    realtime?: boolean
+    soundUrl?: string
+    desktopNotifications?: boolean
+    width?: string | number
+    maxHeight?: string | number
+    theme?: 'light' | 'dark' | 'auto'
+    onNotificationClick?: string
+    onNotificationDismiss?: string
+    onActionClick?: string
+    onMarkAllRead?: string
+  }
+  notificationItem: {
+    notificationId: string
+    notificationType: 'info' | 'success' | 'warning' | 'error' | 'system'
+    priority: 'low' | 'medium' | 'high' | 'urgent'
+    title: string
+    message: string
+    timestamp: number
+    read?: boolean
+    actions?: Array<{
+      id: string
+      label: string
+      action: string
+      variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
+      closeOnClick?: boolean
+    }>
+    richContent?: {
+      image?: string
+      html?: string
+      progress?: number
+      icon?: string
+      link?: string
+      linkText?: string
+      metadata?: Record<string, unknown>
+    }
+    category?: 'account' | 'billing' | 'security' | 'system' | 'social' | 'update' | 'message' | 'alert' | 'reminder'
+    dismissible?: boolean
+    avatar?: string
+    sender?: string
+    link?: string
+    expiresAt?: number
+    onClick?: string
+    onDismiss?: string
+    onAction?: string
+  }
+  notificationBadge: {
+    count: number
+    maxCount?: number
+    position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
+    dot?: boolean
+    color?: string
+    backgroundColor?: string
+    animate?: boolean
+    size?: 'sm' | 'md' | 'lg'
+    ariaLabel?: string
+    onClick?: string
   }
 }

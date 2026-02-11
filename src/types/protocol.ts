@@ -13,6 +13,8 @@ export type MessageType =
   | 'updateDataModel'
   | 'deleteSurface'
   | 'userAction'
+  | 'clientAction'
+  | 'clientActionResponse'
   | 'error'
   | 'ping'
   | 'pong'
@@ -23,6 +25,27 @@ export type MessageType =
   | 'fileUploadCancel'
   | 'fileDelete'
   | 'fileDeleteComplete'
+  | 'notificationCreate'
+  | 'notificationCreated'
+  | 'notificationUpdate'
+  | 'notificationUpdated'
+  | 'notificationDelete'
+  | 'notificationDeleted'
+  | 'notificationMarkAllRead'
+  | 'notificationAllMarkedRead'
+  | 'notificationDeleteAll'
+  | 'notificationAllDeleted'
+  | 'notificationAction'
+  | 'notificationListRequest'
+  | 'notificationListResponse'
+  | 'notificationGetRequest'
+  | 'notificationGetResponse'
+  | 'notificationSettingsUpdate'
+  | 'notificationSettingsUpdated'
+  | 'notificationCount'
+  | 'notificationSubscribe'
+  | 'notificationUnsubscribe'
+  | 'notificationError'
 
 /**
  * Base message structure
@@ -198,4 +221,12 @@ export function isPingMessage(msg: A2UIMessage): msg is PingMessage {
 
 export function isPongMessage(msg: A2UIMessage): msg is PongMessage {
   return msg.type === 'pong'
+}
+
+export function isClientActionMessage(msg: unknown): msg is { type: 'clientAction' } {
+  return typeof msg === 'object' && msg !== null && (msg as { type: string }).type === 'clientAction'
+}
+
+export function isClientActionResponseMessage(msg: unknown): msg is { type: 'clientActionResponse' } {
+  return typeof msg === 'object' && msg !== null && (msg as { type: string }).type === 'clientActionResponse'
 }
