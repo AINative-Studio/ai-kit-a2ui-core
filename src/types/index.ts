@@ -480,3 +480,26 @@ export {
   isAuthLogoutMessage,
   isAuthTokenRefreshMessage,
 } from './auth-messages.js'
+
+// MCP Protocol Types (Issue #44)
+export type {
+  JSONRPCMessage,
+  JSONRPCRequest,
+  JSONRPCResponse,
+  JSONRPCError,
+  JSONRPCNotification,
+  MCPClientInfo,
+  MCPClientCapabilities,
+  MCPServerCapabilities,
+  MCPInitializeResult,
+  MCPServerInfo,
+  MCPTool,
+  MCPToolInputSchema,
+  MCPToolContent,
+  MCPToolResult,
+  MCPResource,
+  MCPResourceContents,
+  MCPPrompt,
+  MCPPromptArgument,
+  MCPPromptMessage,
+} from './mcp-protocol.js'
