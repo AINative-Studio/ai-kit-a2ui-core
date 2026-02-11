@@ -16,6 +16,13 @@ export type MessageType =
   | 'error'
   | 'ping'
   | 'pong'
+  | 'fileUploadStart'
+  | 'fileUploadProgress'
+  | 'fileUploadComplete'
+  | 'fileUploadError'
+  | 'fileUploadCancel'
+  | 'fileDelete'
+  | 'fileDeleteComplete'
 
 /**
  * Base message structure
