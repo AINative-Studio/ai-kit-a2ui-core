@@ -16,5 +16,17 @@ export * from './transport/index.js'
 // Component Registry
 export * from './registry/index.js'
 
+// Handlers
+export * from './handlers/index.js'
+
+// Client Actions
+export * from './actions/index.js'
+
+// Validation
+export * from './validation/index.js'
+
+// Integrations
+export * from './integrations/index.js'
+
 // Version
 export const VERSION = '0.1.0-alpha.1'
