@@ -480,3 +480,69 @@ export {
   isAuthLogoutMessage,
   isAuthTokenRefreshMessage,
 } from './auth-messages.js'
+
+// Collaboration Component Types (Issue #54)
+export type {
+  CollaborativeEditorComponent,
+  PresenceIndicatorComponent,
+  CollaborativeCanvasComponent,
+  SharedCursorComponent,
+  CommentThreadComponent,
+  CollaborationComponent,
+  CollaborationComponentType,
+} from './collaboration-components.js'
+
+export {
+  isCollaborativeEditorComponent,
+  isPresenceIndicatorComponent,
+  isCollaborativeCanvasComponent,
+  isSharedCursorComponent,
+  isCommentThreadComponent,
+  isCollaborationComponent,
+  validateCollaborationComponent,
+} from './collaboration-components.js'
+
+// Collaboration Message Types (Issue #54)
+export type {
+  BaseCollaborationMessage,
+  EditorOperation,
+  CollaborativeEditorChangeMessage,
+  CollaborativeEditorSyncMessage,
+  PresenceUser,
+  PresenceJoinMessage,
+  PresenceLeaveMessage,
+  PresenceStatus,
+  PresenceUpdateMessage,
+  CursorMoveMessage,
+  SelectionRange,
+  CursorSelectionMessage,
+  CanvasShape,
+  CanvasText,
+  CanvasAction,
+  CanvasDrawMessage,
+  CanvasClearMessage,
+  CommentCreateMessage,
+  CommentReplyMessage,
+  CommentResolveMessage,
+  CommentReactMessage,
+  CollaborationMessage,
+  CollaborationMessageType,
+} from './collaboration-messages.js'
+
+export {
+  isCollaborativeEditorChangeMessage,
+  isCollaborativeEditorSyncMessage,
+  isPresenceJoinMessage,
+  isPresenceLeaveMessage,
+  isPresenceUpdateMessage,
+  isCursorMoveMessage,
+  isCursorSelectionMessage,
+  isCanvasDrawMessage,
+  isCanvasClearMessage,
+  isCommentCreateMessage,
+  isCommentReplyMessage,
+  isCommentResolveMessage,
+  isCommentReactMessage,
+  isCollaborationMessage,
+  validateCollaborationMessage,
+} from './collaboration-messages.js'
