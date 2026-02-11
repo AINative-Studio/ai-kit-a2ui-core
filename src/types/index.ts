@@ -481,68 +481,25 @@ export {
   isAuthTokenRefreshMessage,
 } from './auth-messages.js'
 
-// Collaboration Component Types (Issue #54)
+// MCP Protocol Types (Issue #44)
 export type {
-  CollaborativeEditorComponent,
-  PresenceIndicatorComponent,
-  CollaborativeCanvasComponent,
-  SharedCursorComponent,
-  CommentThreadComponent,
-  CollaborationComponent,
-  CollaborationComponentType,
-} from './collaboration-components.js'
-
-export {
-  isCollaborativeEditorComponent,
-  isPresenceIndicatorComponent,
-  isCollaborativeCanvasComponent,
-  isSharedCursorComponent,
-  isCommentThreadComponent,
-  isCollaborationComponent,
-  validateCollaborationComponent,
-} from './collaboration-components.js'
-
-// Collaboration Message Types (Issue #54)
-export type {
-  BaseCollaborationMessage,
-  EditorOperation,
-  CollaborativeEditorChangeMessage,
-  CollaborativeEditorSyncMessage,
-  PresenceUser,
-  PresenceJoinMessage,
-  PresenceLeaveMessage,
-  PresenceStatus,
-  PresenceUpdateMessage,
-  CursorMoveMessage,
-  SelectionRange,
-  CursorSelectionMessage,
-  CanvasShape,
-  CanvasText,
-  CanvasAction,
-  CanvasDrawMessage,
-  CanvasClearMessage,
-  CommentCreateMessage,
-  CommentReplyMessage,
-  CommentResolveMessage,
-  CommentReactMessage,
-  CollaborationMessage,
-  CollaborationMessageType,
-} from './collaboration-messages.js'
-
-export {
-  isCollaborativeEditorChangeMessage,
-  isCollaborativeEditorSyncMessage,
-  isPresenceJoinMessage,
-  isPresenceLeaveMessage,
-  isPresenceUpdateMessage,
-  isCursorMoveMessage,
-  isCursorSelectionMessage,
-  isCanvasDrawMessage,
-  isCanvasClearMessage,
-  isCommentCreateMessage,
-  isCommentReplyMessage,
-  isCommentResolveMessage,
-  isCommentReactMessage,
-  isCollaborationMessage,
-  validateCollaborationMessage,
-} from './collaboration-messages.js'
+  JSONRPCMessage,
+  JSONRPCRequest,
+  JSONRPCResponse,
+  JSONRPCError,
+  JSONRPCNotification,
+  MCPClientInfo,
+  MCPClientCapabilities,
+  MCPServerCapabilities,
+  MCPInitializeResult,
+  MCPServerInfo,
+  MCPTool,
+  MCPToolInputSchema,
+  MCPToolContent,
+  MCPToolResult,
+  MCPResource,
+  MCPResourceContents,
+  MCPPrompt,
+  MCPPromptArgument,
+  MCPPromptMessage,
+} from './mcp-protocol.js'
