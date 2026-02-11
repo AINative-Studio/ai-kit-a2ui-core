@@ -2,8 +2,10 @@
  * A2UI v0.9 Component Type Definitions
  */
 
+import type { ZeroDBComponentType } from './zerodb-components.js'
+
 /**
- * All standard A2UI component types (22 types including video and file upload components)
+ * All standard A2UI component types (31 types including video, file upload, notification, and ZeroDB components)
  */
 export type ComponentType =
   | 'card'
@@ -27,8 +29,18 @@ export type ComponentType =
   | 'videoRecorder'
   | 'videoCall'
   | 'aiVideo'
-  | 'aiVideoPlayer'
-  | 'fileUpload'
+  | 'aiVideoPlayer'  | 'fileUpload'
+  | 'authLoginForm'
+  | 'authSignupForm'
+  | 'authPasswordReset'
+  | 'authProfile'
+  | 'authSessionManager'
+  | 'auth2FA'
+  | 'authOAuthCallback'
+  | 'notificationCenter'
+  | 'notificationItem'
+  | 'notificationBadge'
+  | ZeroDBComponentType
 
 /**
  * Base component structure
@@ -56,6 +68,98 @@ export interface TypedA2UIComponent<T extends ComponentType> extends A2UICompone
  * Component property definitions by type
  */
 export interface ComponentProperties {
+  // ZeroDB components
+  zerodbVectorSearch: {
+    query?: string
+    topK?: number
+    filters?: Record<string, unknown>
+    showResults?: boolean
+    showSimilarityScore?: boolean
+    resultTemplate?: string
+    autoSearch?: boolean
+    debounceMs?: number
+    metadata?: Record<string, unknown>
+  }
+  zerodbTableQuery: {
+    tableName: string
+    filters?: Record<string, unknown>
+    limit?: number
+    offset?: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    columns?: string[]
+    editable?: boolean
+    actions?: Array<{
+      label: string
+      action: string
+      icon?: string
+    }>
+    pagination?: boolean
+    searchable?: boolean
+    metadata?: Record<string, unknown>
+  }
+  zerodbFileBrowser: {
+    path?: string
+    view?: 'list' | 'grid' | 'tree'
+    showPreview?: boolean
+    allowUpload?: boolean
+    allowDownload?: boolean
+    allowDelete?: boolean
+    fileTypes?: string[]
+    maxFileSize?: number
+    showMetadata?: boolean
+    sortBy?: 'name' | 'size' | 'date'
+    sortOrder?: 'asc' | 'desc'
+    multiSelect?: boolean
+    metadata?: Record<string, unknown>
+  }
+  zerodbPostgresQuery: {
+    query?: string
+    readOnly?: boolean
+    showSchema?: boolean
+    showExplain?: boolean
+    maxRows?: number
+    exportFormats?: Array<'csv' | 'json' | 'sql'>
+    syntaxHighlight?: boolean
+    autoComplete?: boolean
+    savedQueries?: Array<{
+      name: string
+      query: string
+    }>
+    metadata?: Record<string, unknown>
+  }
+  zerodbMemoryContext: {
+    sessionId?: string
+    showTimeline?: boolean
+    showRelevance?: boolean
+    maxItems?: number
+    groupBy?: 'time' | 'topic' | 'relevance'
+    searchable?: boolean
+    exportable?: boolean
+    metadata?: Record<string, unknown>
+  }
+  zerodbAnalytics: {
+    metrics: Array<{
+      name: string
+      query: string
+      type: 'number' | 'chart' | 'table'
+      refreshInterval?: number
+    }>
+    timeRange?: {
+      start: Date
+      end: Date
+      preset?: '1h' | '24h' | '7d' | '30d' | 'custom'
+    }
+    charts?: Array<{
+      type: 'line' | 'bar' | 'pie' | 'area'
+      data: string
+      title: string
+    }>
+    autoRefresh?: boolean
+    exportable?: boolean
+    metadata?: Record<string, unknown>
+  }
+  // Standard components
   card: {
     title?: string
     subtitle?: string
