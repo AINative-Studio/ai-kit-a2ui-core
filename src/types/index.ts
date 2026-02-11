@@ -34,10 +34,58 @@ export {
   isUpdateDataModelMessage,
   isDeleteSurfaceMessage,
   isUserActionMessage,
+  isClientActionMessage,
+  isClientActionResponseMessage,
   isErrorMessage,
   isPingMessage,
   isPongMessage,
 } from './protocol.js'
+
+// Client Action Types (Issue #45)
+export type {
+  ClientActionType,
+  ClientActionMessage,
+  ClientActionResponseMessage,
+  PermissionType,
+  NavigateAction,
+  GoBackAction,
+  GoForwardAction,
+  RefreshAction,
+  ScrollToAction,
+  ShowToastAction,
+  ShowModalAction,
+  CloseModalAction,
+  ShowDialogAction,
+  CloseDialogAction,
+  ShowNotificationAction,
+  CopyToClipboardAction,
+  DownloadFileAction,
+  UploadFileAction,
+  ShareContentAction,
+  PrintPageAction,
+  SetLocalStorageAction,
+  GetLocalStorageAction,
+  RemoveLocalStorageAction,
+  ClearLocalStorageAction,
+  RequestPermissionAction,
+  GetUserMediaAction,
+  VibrateAction,
+  OpenCameraAction,
+  OpenGalleryAction,
+  TrackEventAction,
+  TrackPageViewAction,
+  SetUserPropertyAction,
+  OpenUrlAction,
+  SendEmailAction,
+  MakePhoneCallAction,
+  OpenMapAction,
+  SpecificClientAction,
+} from './client-action-messages.js'
+
+export {
+  isClientActionMessage as isClientActionMessageStrict,
+  isClientActionResponseMessage as isClientActionResponseMessageStrict,
+} from './client-action-messages.js'
 
 // AI Metadata State Types (Issue #28)
 export type {
