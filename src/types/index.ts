@@ -72,3 +72,69 @@ export {
   isSentimentMetadata,
   isAIMetadataState,
 } from './ai-metadata-state.js'
+
+// File Upload Component Types (Issue #43)
+export type {
+  FileMetadata,
+  UploadState,
+  FileUploadProperties,
+  FileValidationResult,
+  FileUploadComponent,
+} from './file-upload-components.js'
+
+export {
+  validateFile,
+  validateFiles,
+  sanitizeFileName,
+  isValidFileName,
+  formatFileSize,
+  DEFAULT_FILE_UPLOAD_PROPERTIES,
+} from './file-upload-components.js'
+
+// File Upload Message Types (Issue #43)
+export type {
+  FileInfo,
+  FileUploadStartMessage,
+  FileUploadProgressMessage,
+  FileUploadCompleteMessage,
+  FileUploadErrorMessage,
+  FileUploadCancelMessage,
+  FileDeleteMessage,
+  FileDeleteCompleteMessage,
+  FileUploadMessage,
+} from './file-upload-messages.js'
+
+export {
+  isFileUploadStartMessage,
+  isFileUploadProgressMessage,
+  isFileUploadCompleteMessage,
+  isFileUploadErrorMessage,
+  isFileUploadCancelMessage,
+  isFileDeleteMessage,
+  isFileDeleteCompleteMessage,
+  createFileUploadStartMessage,
+  createFileUploadProgressMessage,
+  createFileUploadCompleteMessage,
+  createFileUploadErrorMessage,
+} from './file-upload-messages.js'
+
+// Progressive Rendering Message Types (Issue #53)
+export type {
+  ProgressiveRenderStartMessage,
+  ProgressiveRenderChunkMessage,
+  ProgressiveRenderCompleteMessage,
+  ProgressiveRenderErrorMessage,
+  ProgressiveRenderProgressMessage,
+  ExtendedMessageType,
+  ProgressiveRenderMessage,
+  ExtendedA2UIMessage,
+} from './progressive-render-messages.js'
+
+export {
+  isProgressiveRenderStartMessage,
+  isProgressiveRenderChunkMessage,
+  isProgressiveRenderCompleteMessage,
+  isProgressiveRenderErrorMessage,
+  isProgressiveRenderProgressMessage,
+  isProgressiveRenderMessage,
+} from './progressive-render-messages.js'

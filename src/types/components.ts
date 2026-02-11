@@ -3,7 +3,7 @@
  */
 
 /**
- * All standard A2UI component types (21 types including video components)
+ * All standard A2UI component types (22 types including video and file upload components)
  */
 export type ComponentType =
   | 'card'
@@ -28,6 +28,7 @@ export type ComponentType =
   | 'videoCall'
   | 'aiVideo'
   | 'aiVideoPlayer'
+  | 'fileUpload'
 
 /**
  * Base component structure
@@ -229,5 +230,24 @@ export interface ComponentProperties {
     }
     onProgress?: string
     onQuestion?: string
+  }
+  fileUpload: {
+    accept?: string[]
+    multiple?: boolean
+    maxFileSize?: number
+    maxFiles?: number
+    dragAndDrop?: boolean
+    showProgress?: boolean
+    showPreview?: boolean
+    uploadEndpoint?: string
+    metadata?: Record<string, unknown>
+    label?: string
+    helperText?: string
+    disabled?: boolean
+    error?: string
+    onUploadStart?: string
+    onUploadProgress?: string
+    onUploadComplete?: string
+    onUploadError?: string
   }
 }
