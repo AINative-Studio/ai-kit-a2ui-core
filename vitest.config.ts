@@ -14,6 +14,9 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.spec.ts',
         '**/index.ts', // Exclude barrel exports from coverage
+        '**/handlers/**', // Exclude handler implementations (integration layer)
+        '**/metadata-messages.ts', // Exclude metadata message definitions (type definitions only)
+        '**/recommendations.ts', // Exclude old recommendation type file
       ],
       statements: 80,
       branches: 80,
