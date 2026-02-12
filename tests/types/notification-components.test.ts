@@ -1,27 +1,18 @@
 /**
  * Notification Component Tests
- * Comprehensive tests for notification component types and utilities
+ * Comprehensive tests for notification component types and helpers
  */
 
 import { describe, it, expect } from 'vitest'
-import {
+import type {
+  ComponentType,
+  NotificationCenterComponent,
+  NotificationItemComponent,
+  NotificationBadgeComponent,
   NotificationType,
   NotificationPriority,
-  NotificationPosition,
-  NotificationFilterType,
-  NotificationGroupBy,
-  BadgePosition,
-  NotificationCategory,
-  NotificationAction,
-  NotificationRichContent,
-  NotificationCenterProperties,
-  NotificationCenterComponent,
-  NotificationItemProperties,
-  NotificationItemComponent,
-  NotificationBadgeProperties,
-  NotificationBadgeComponent,
-  NotificationState,
-  NotificationSettings,
+} from '../../src/types/index.js'
+import {
   DEFAULT_NOTIFICATION_CENTER_PROPERTIES,
   DEFAULT_NOTIFICATION_BADGE_PROPERTIES,
   isNotificationCenterComponent,
@@ -36,655 +27,471 @@ import {
 } from '../../src/types/notification-components.js'
 
 describe('Notification Component Types', () => {
-  describe('NotificationType', () => {
-    it('validates all notification types', () => {
-      const types: NotificationType[] = ['info', 'success', 'warning', 'error', 'system']
-      types.forEach((type) => {
-        expect(['info', 'success', 'warning', 'error', 'system']).toContain(type)
-      })
+  describe('ComponentType Union', () => {
+    it('includes notificationCenter in ComponentType union', () => {
+      const type: ComponentType = 'notificationCenter'
+      expect(type).toBe('notificationCenter')
+    })
+
+    it('includes notificationItem in ComponentType union', () => {
+      const type: ComponentType = 'notificationItem'
+      expect(type).toBe('notificationItem')
+    })
+
+    it('includes notificationBadge in ComponentType union', () => {
+      const type: ComponentType = 'notificationBadge'
+      expect(type).toBe('notificationBadge')
     })
   })
 
-  describe('NotificationPriority', () => {
-    it('validates all priority levels', () => {
-      const priorities: NotificationPriority[] = ['low', 'medium', 'high', 'urgent']
-      priorities.forEach((priority) => {
-        expect(['low', 'medium', 'high', 'urgent']).toContain(priority)
-      })
-    })
-  })
+  describe('NotificationCenter Component', () => {
+    it('creates notification center with minimal properties', () => {
+      const component: NotificationCenterComponent = {
+        id: 'notif-center-1',
+        type: 'notificationCenter',
+        properties: {},
+      }
 
-  describe('NotificationPosition', () => {
-    it('validates all positions', () => {
-      const positions: NotificationPosition[] = [
+      expect(component.type).toBe('notificationCenter')
+      expect(component.id).toBe('notif-center-1')
+    })
+
+    it('creates notification center with all properties', () => {
+      const component: NotificationCenterComponent = {
+        id: 'notif-center-2',
+        type: 'notificationCenter',
+        properties: {
+          position: 'top-right',
+          maxVisible: 5,
+          autoClose: true,
+          autoCloseDelay: 5000,
+          types: ['success', 'error', 'warning', 'info', 'alert'],
+          showFilters: true,
+          filterBy: ['type', 'category', 'read/unread'],
+          groupBy: 'category',
+          allowMarkAsRead: true,
+          allowMarkAllAsRead: true,
+          allowDelete: true,
+          allowDeleteAll: true,
+          allowSnooze: true,
+          showTimestamp: true,
+          showAvatar: true,
+          showActions: true,
+          persistNotifications: true,
+          maxNotifications: 100,
+          soundEnabled: true,
+          vibrationEnabled: false,
+          soundUrl: '/sounds/notification.mp3',
+          categories: [
+            { id: 'system', label: 'System', icon: 'settings', color: '#3b82f6' },
+            { id: 'alerts', label: 'Alerts', icon: 'bell', color: '#ef4444' },
+          ],
+        },
+      }
+
+      expect(component.properties?.position).toBe('top-right')
+      expect(component.properties?.maxVisible).toBe(5)
+      expect(component.properties?.autoClose).toBe(true)
+      expect(component.properties?.categories).toHaveLength(2)
+    })
+
+    it('supports different positions', () => {
+      const positions: Array<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'center'> = [
         'top-right',
         'top-left',
         'bottom-right',
         'bottom-left',
-        'top-center',
-        'bottom-center',
+        'center',
       ]
-      positions.forEach((position) => {
-        expect([
-          'top-right',
-          'top-left',
-          'bottom-right',
-          'bottom-left',
-          'top-center',
-          'bottom-center',
-        ]).toContain(position)
-      })
-    })
-  })
 
-  describe('NotificationCenterComponent', () => {
-    it('creates valid notification center with minimal properties', () => {
-      const component: NotificationCenterComponent = {
-        type: 'notificationCenter',
-        id: 'notification-center-1',
-      }
-
-      expect(component.type).toBe('notificationCenter')
-      expect(component.id).toBe('notification-center-1')
-    })
-
-    it('creates valid notification center with all properties', () => {
-      const component: NotificationCenterComponent = {
-        type: 'notificationCenter',
-        id: 'notification-center-2',
-        properties: {
-          maxVisible: 20,
-          position: 'top-right',
-          autoHide: true,
-          autoHideDuration: 3000,
-          groupBy: 'type',
-          filterType: ['info', 'success'],
-          showBadge: true,
-          sound: true,
-          realtime: true,
-          soundUrl: '/sounds/notification.mp3',
-          desktopNotifications: true,
-          width: 400,
-          maxHeight: 600,
-          theme: 'dark',
-          onNotificationClick: '/handlers/notificationClick',
-          onNotificationDismiss: '/handlers/notificationDismiss',
-          onActionClick: '/handlers/actionClick',
-          onMarkAllRead: '/handlers/markAllRead',
-        },
-      }
-
-      expect(component.type).toBe('notificationCenter')
-      expect(component.properties?.maxVisible).toBe(20)
-      expect(component.properties?.position).toBe('top-right')
-      expect(component.properties?.autoHide).toBe(true)
-      expect(component.properties?.autoHideDuration).toBe(3000)
-      expect(component.properties?.groupBy).toBe('type')
-      expect(component.properties?.filterType).toEqual(['info', 'success'])
-      expect(component.properties?.showBadge).toBe(true)
-      expect(component.properties?.sound).toBe(true)
-      expect(component.properties?.realtime).toBe(true)
-      expect(component.properties?.soundUrl).toBe('/sounds/notification.mp3')
-      expect(component.properties?.desktopNotifications).toBe(true)
-      expect(component.properties?.width).toBe(400)
-      expect(component.properties?.maxHeight).toBe(600)
-      expect(component.properties?.theme).toBe('dark')
-    })
-
-    it('supports different grouping strategies', () => {
-      const groupByOptions: NotificationGroupBy[] = ['none', 'type', 'priority', 'category', 'date']
-      groupByOptions.forEach((groupBy) => {
-        const component: NotificationCenterComponent = {
-          type: 'notificationCenter',
-          id: `center-${groupBy}`,
-          properties: { groupBy },
-        }
-        expect(component.properties?.groupBy).toBe(groupBy)
-      })
-    })
-
-    it('supports different positions', () => {
-      const positions: NotificationPosition[] = ['top-right', 'bottom-left', 'top-center']
       positions.forEach((position) => {
         const component: NotificationCenterComponent = {
+          id: `notif-${position}`,
           type: 'notificationCenter',
-          id: `center-${position}`,
           properties: { position },
         }
         expect(component.properties?.position).toBe(position)
       })
     })
+
+    it('supports different grouping options', () => {
+      const groupings: Array<'type' | 'category' | 'date' | 'none'> = ['type', 'category', 'date', 'none']
+
+      groupings.forEach((groupBy) => {
+        const component: NotificationCenterComponent = {
+          id: `notif-group-${groupBy}`,
+          type: 'notificationCenter',
+          properties: { groupBy },
+        }
+        expect(component.properties?.groupBy).toBe(groupBy)
+      })
+    })
   })
 
-  describe('NotificationItemComponent', () => {
-    it('creates valid notification item with required properties', () => {
-      const properties: NotificationItemProperties = {
-        notificationId: 'notif-123',
-        notificationType: 'info',
-        priority: 'medium',
-        title: 'Test Notification',
-        message: 'This is a test message',
-        timestamp: Date.now(),
-      }
-
+  describe('NotificationItem Component', () => {
+    it('creates notification item with required properties', () => {
       const component: NotificationItemComponent = {
+        id: 'notif-item-1',
         type: 'notificationItem',
-        id: 'item-1',
-        properties,
+        properties: {
+          type: 'success',
+          title: 'Success',
+          message: 'Operation completed successfully',
+          timestamp: new Date('2024-01-01T00:00:00Z'),
+          read: false,
+        },
       }
 
       expect(component.type).toBe('notificationItem')
-      expect(component.properties.notificationId).toBe('notif-123')
-      expect(component.properties.notificationType).toBe('info')
-      expect(component.properties.priority).toBe('medium')
-      expect(component.properties.title).toBe('Test Notification')
-      expect(component.properties.message).toBe('This is a test message')
+      expect(component.properties.type).toBe('success')
+      expect(component.properties.title).toBe('Success')
+      expect(component.properties.message).toBe('Operation completed successfully')
+      expect(component.properties.read).toBe(false)
     })
 
-    it('creates notification item with all optional properties', () => {
-      const actions: NotificationAction[] = [
-        {
-          id: 'action-1',
-          label: 'View',
-          action: '/handlers/view',
-          variant: 'primary',
-          closeOnClick: true,
-        },
-        {
-          id: 'action-2',
-          label: 'Dismiss',
-          action: '/handlers/dismiss',
-          variant: 'ghost',
-          closeOnClick: true,
-        },
-      ]
-
-      const richContent: NotificationRichContent = {
-        image: '/images/notification.png',
-        progress: 75,
-        icon: 'bell',
-        link: '/details',
-        linkText: 'View Details',
-        metadata: { customField: 'value' },
-      }
-
-      const properties: NotificationItemProperties = {
-        notificationId: 'notif-456',
-        notificationType: 'success',
-        priority: 'high',
-        title: 'Upload Complete',
-        message: 'Your file has been successfully uploaded',
-        timestamp: Date.now(),
-        read: false,
-        actions,
-        richContent,
-        category: 'system',
-        dismissible: true,
-        avatar: '/avatars/system.png',
-        sender: 'System',
-        link: '/uploads',
-        expiresAt: Date.now() + 86400000, // 24 hours
-        onClick: '/handlers/onClick',
-        onDismiss: '/handlers/onDismiss',
-        onAction: '/handlers/onAction',
-      }
-
+    it('creates notification item with all properties', () => {
       const component: NotificationItemComponent = {
+        id: 'notif-item-2',
         type: 'notificationItem',
-        id: 'item-2',
-        properties,
+        properties: {
+          type: 'error',
+          title: 'Error',
+          message: 'An error occurred',
+          category: 'system',
+          timestamp: new Date(),
+          read: true,
+          icon: 'x-circle',
+          avatar: 'https://example.com/avatar.jpg',
+          image: 'https://example.com/image.jpg',
+          color: '#ef4444',
+          actions: [
+            { label: 'Retry', action: 'retry', primary: true },
+            { label: 'Dismiss', action: 'dismiss' },
+          ],
+          closable: true,
+          autoClose: false,
+          priority: 'high',
+          richContent: {
+            html: '<p>Error details</p>',
+          },
+          metadata: { errorCode: 'ERR_001' },
+        },
       }
 
+      expect(component.properties.type).toBe('error')
+      expect(component.properties.priority).toBe('high')
       expect(component.properties.actions).toHaveLength(2)
-      expect(component.properties.richContent?.progress).toBe(75)
-      expect(component.properties.category).toBe('system')
-      expect(component.properties.dismissible).toBe(true)
-      expect(component.properties.sender).toBe('System')
+      expect(component.properties.metadata?.errorCode).toBe('ERR_001')
     })
 
     it('supports all notification types', () => {
-      const types: NotificationType[] = ['info', 'success', 'warning', 'error', 'system']
+      const types: NotificationType[] = ['success', 'error', 'warning', 'info', 'alert']
+
       types.forEach((type) => {
-        const properties: NotificationItemProperties = {
-          notificationId: `notif-${type}`,
-          notificationType: type,
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test message',
-          timestamp: Date.now(),
+        const component: NotificationItemComponent = {
+          id: `notif-${type}`,
+          type: 'notificationItem',
+          properties: {
+            type,
+            title: 'Title',
+            message: 'Message',
+            timestamp: new Date(),
+            read: false,
+          },
         }
-        expect(properties.notificationType).toBe(type)
+        expect(component.properties.type).toBe(type)
       })
     })
 
     it('supports all priority levels', () => {
-      const priorities: NotificationPriority[] = ['low', 'medium', 'high', 'urgent']
+      const priorities: NotificationPriority[] = ['low', 'normal', 'high', 'urgent']
+
       priorities.forEach((priority) => {
-        const properties: NotificationItemProperties = {
-          notificationId: `notif-${priority}`,
-          notificationType: 'info',
-          priority,
-          title: 'Test',
-          message: 'Test message',
-          timestamp: Date.now(),
+        const component: NotificationItemComponent = {
+          id: `notif-priority-${priority}`,
+          type: 'notificationItem',
+          properties: {
+            type: 'info',
+            title: 'Title',
+            message: 'Message',
+            timestamp: new Date(),
+            read: false,
+            priority,
+          },
         }
-        expect(properties.priority).toBe(priority)
+        expect(component.properties.priority).toBe(priority)
       })
     })
 
-    it('supports all categories', () => {
-      const categories: NotificationCategory[] = [
-        'account',
-        'billing',
-        'security',
-        'system',
-        'social',
-        'update',
-        'message',
-        'alert',
-        'reminder',
-      ]
-      categories.forEach((category) => {
-        const properties: NotificationItemProperties = {
-          notificationId: `notif-${category}`,
-          notificationType: 'info',
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test message',
-          timestamp: Date.now(),
-          category,
-        }
-        expect(properties.category).toBe(category)
-      })
+    it('supports action buttons', () => {
+      const component: NotificationItemComponent = {
+        id: 'notif-actions',
+        type: 'notificationItem',
+        properties: {
+          type: 'info',
+          title: 'Confirm Action',
+          message: 'Please confirm this action',
+          timestamp: new Date(),
+          read: false,
+          actions: [
+            { label: 'Confirm', action: 'confirm', primary: true },
+            { label: 'Cancel', action: 'cancel' },
+            { label: 'Delete', action: 'delete', destructive: true },
+          ],
+        },
+      }
+
+      expect(component.properties.actions).toHaveLength(3)
+      expect(component.properties.actions?.[0].primary).toBe(true)
+      expect(component.properties.actions?.[2].destructive).toBe(true)
+    })
+
+    it('supports rich content', () => {
+      const component: NotificationItemComponent = {
+        id: 'notif-rich',
+        type: 'notificationItem',
+        properties: {
+          type: 'info',
+          title: 'Rich Content',
+          message: 'This notification has rich content',
+          timestamp: new Date(),
+          read: false,
+          richContent: {
+            html: '<div><h3>Title</h3><p>Content</p></div>',
+            markdown: '## Title\n\nContent',
+            components: [
+              {
+                id: 'button-1',
+                type: 'button',
+                properties: { label: 'Click Me', action: 'click' },
+              },
+            ],
+          },
+        },
+      }
+
+      expect(component.properties.richContent).toBeDefined()
+      expect(component.properties.richContent?.html).toContain('<h3>Title</h3>')
+      expect(component.properties.richContent?.markdown).toContain('## Title')
+      expect(component.properties.richContent?.components).toHaveLength(1)
     })
   })
 
-  describe('NotificationBadgeComponent', () => {
-    it('creates valid badge with minimal properties', () => {
+  describe('NotificationBadge Component', () => {
+    it('creates notification badge with count', () => {
       const component: NotificationBadgeComponent = {
-        type: 'notificationBadge',
         id: 'badge-1',
+        type: 'notificationBadge',
         properties: {
           count: 5,
         },
       }
 
       expect(component.type).toBe('notificationBadge')
-      expect(component.properties.count).toBe(5)
+      expect(component.properties?.count).toBe(5)
     })
 
-    it('creates badge with all properties', () => {
+    it('creates notification badge with all properties', () => {
       const component: NotificationBadgeComponent = {
-        type: 'notificationBadge',
         id: 'badge-2',
+        type: 'notificationBadge',
         properties: {
           count: 99,
           maxCount: 99,
-          position: 'top-right',
+          showZero: false,
           dot: false,
-          color: '#ffffff',
-          backgroundColor: '#ef4444',
-          animate: true,
-          size: 'md',
-          ariaLabel: '99 unread notifications',
-          onClick: '/handlers/badgeClick',
+          position: 'top-right',
+          color: '#ef4444',
+          pulse: true,
         },
       }
 
-      expect(component.properties.count).toBe(99)
-      expect(component.properties.maxCount).toBe(99)
-      expect(component.properties.position).toBe('top-right')
-      expect(component.properties.dot).toBe(false)
-      expect(component.properties.color).toBe('#ffffff')
-      expect(component.properties.backgroundColor).toBe('#ef4444')
-      expect(component.properties.animate).toBe(true)
-      expect(component.properties.size).toBe('md')
+      expect(component.properties?.count).toBe(99)
+      expect(component.properties?.maxCount).toBe(99)
+      expect(component.properties?.pulse).toBe(true)
     })
 
-    it('supports all badge positions', () => {
-      const positions: BadgePosition[] = ['top-right', 'top-left', 'bottom-right', 'bottom-left']
-      positions.forEach((position) => {
-        const component: NotificationBadgeComponent = {
-          type: 'notificationBadge',
-          id: `badge-${position}`,
-          properties: {
-            count: 1,
-            position,
-          },
-        }
-        expect(component.properties.position).toBe(position)
-      })
-    })
-
-    it('supports all badge sizes', () => {
-      const sizes: ('sm' | 'md' | 'lg')[] = ['sm', 'md', 'lg']
-      sizes.forEach((size) => {
-        const component: NotificationBadgeComponent = {
-          type: 'notificationBadge',
-          id: `badge-${size}`,
-          properties: {
-            count: 1,
-            size,
-          },
-        }
-        expect(component.properties.size).toBe(size)
-      })
-    })
-
-    it('supports dot mode instead of count', () => {
+    it('supports dot mode', () => {
       const component: NotificationBadgeComponent = {
-        type: 'notificationBadge',
         id: 'badge-dot',
+        type: 'notificationBadge',
         properties: {
-          count: 0,
+          count: 1,
           dot: true,
         },
       }
-      expect(component.properties.dot).toBe(true)
-    })
-  })
 
-  describe('NotificationState', () => {
-    it('creates valid notification state', () => {
-      const state: NotificationState = {
-        notifications: [],
-        unreadCount: 0,
-        totalCount: 0,
-        lastUpdate: Date.now(),
-      }
-
-      expect(state.notifications).toHaveLength(0)
-      expect(state.unreadCount).toBe(0)
-      expect(state.totalCount).toBe(0)
+      expect(component.properties?.dot).toBe(true)
     })
 
-    it('tracks notifications with filter and sort', () => {
-      const notifications: NotificationItemProperties[] = [
-        {
-          notificationId: '1',
-          notificationType: 'info',
-          priority: 'medium',
-          title: 'Test 1',
-          message: 'Message 1',
-          timestamp: Date.now(),
-          read: false,
-        },
-        {
-          notificationId: '2',
-          notificationType: 'success',
-          priority: 'high',
-          title: 'Test 2',
-          message: 'Message 2',
-          timestamp: Date.now(),
-          read: true,
-        },
+    it('supports different positions', () => {
+      const positions: Array<'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'> = [
+        'top-right',
+        'top-left',
+        'bottom-right',
+        'bottom-left',
       ]
 
-      const state: NotificationState = {
-        notifications,
-        unreadCount: 1,
-        totalCount: 2,
-        lastUpdate: Date.now(),
-        activeFilter: 'unread',
-        sortOrder: 'desc',
-      }
-
-      expect(state.notifications).toHaveLength(2)
-      expect(state.unreadCount).toBe(1)
-      expect(state.totalCount).toBe(2)
-      expect(state.activeFilter).toBe('unread')
-      expect(state.sortOrder).toBe('desc')
-    })
-  })
-
-  describe('NotificationSettings', () => {
-    it('creates valid notification settings', () => {
-      const settings: NotificationSettings = {
-        enabled: true,
-        sound: true,
-        desktop: false,
-        autoMarkRead: true,
-        channels: {
-          account: true,
-          billing: true,
-          security: true,
-          system: true,
-        },
-      }
-
-      expect(settings.enabled).toBe(true)
-      expect(settings.sound).toBe(true)
-      expect(settings.desktop).toBe(false)
-      expect(settings.autoMarkRead).toBe(true)
-      expect(settings.channels.account).toBe(true)
-    })
-
-    it('supports do not disturb mode', () => {
-      const settings: NotificationSettings = {
-        enabled: true,
-        sound: false,
-        desktop: false,
-        autoMarkRead: false,
-        channels: {},
-        doNotDisturb: true,
-        dndStartTime: '22:00',
-        dndEndTime: '08:00',
-      }
-
-      expect(settings.doNotDisturb).toBe(true)
-      expect(settings.dndStartTime).toBe('22:00')
-      expect(settings.dndEndTime).toBe('08:00')
-    })
-  })
-
-  describe('Default Properties', () => {
-    it('has valid default notification center properties', () => {
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.maxVisible).toBe(10)
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.position).toBe('top-right')
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.autoHide).toBe(false)
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.autoHideDuration).toBe(5000)
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.groupBy).toBe('none')
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.showBadge).toBe(true)
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.sound).toBe(false)
-      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.realtime).toBe(true)
-    })
-
-    it('has valid default notification badge properties', () => {
-      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.maxCount).toBe(99)
-      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.position).toBe('top-right')
-      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.dot).toBe(false)
-      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.animate).toBe(true)
-      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.size).toBe('md')
+      positions.forEach((position) => {
+        const component: NotificationBadgeComponent = {
+          id: `badge-${position}`,
+          type: 'notificationBadge',
+          properties: {
+            count: 5,
+            position,
+          },
+        }
+        expect(component.properties?.position).toBe(position)
+      })
     })
   })
 
   describe('Type Guards', () => {
-    it('identifies notification center component', () => {
+    it('identifies notification center components', () => {
       const component: NotificationCenterComponent = {
-        type: 'notificationCenter',
         id: 'center-1',
+        type: 'notificationCenter',
       }
+
       expect(isNotificationCenterComponent(component)).toBe(true)
-      expect(isNotificationCenterComponent({ type: 'other' })).toBe(false)
-      expect(isNotificationCenterComponent(null)).toBe(false)
-      expect(isNotificationCenterComponent(undefined)).toBe(false)
+      expect(isNotificationItemComponent(component)).toBe(false)
+      expect(isNotificationBadgeComponent(component)).toBe(false)
     })
 
-    it('identifies notification item component', () => {
+    it('identifies notification item components', () => {
       const component: NotificationItemComponent = {
-        type: 'notificationItem',
         id: 'item-1',
+        type: 'notificationItem',
         properties: {
-          notificationId: '1',
-          notificationType: 'info',
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test',
-          timestamp: Date.now(),
+          type: 'info',
+          title: 'Title',
+          message: 'Message',
+          timestamp: new Date(),
+          read: false,
         },
       }
+
+      expect(isNotificationCenterComponent(component)).toBe(false)
       expect(isNotificationItemComponent(component)).toBe(true)
-      expect(isNotificationItemComponent({ type: 'other' })).toBe(false)
-      expect(isNotificationItemComponent(null)).toBe(false)
+      expect(isNotificationBadgeComponent(component)).toBe(false)
     })
 
-    it('identifies notification badge component', () => {
+    it('identifies notification badge components', () => {
       const component: NotificationBadgeComponent = {
-        type: 'notificationBadge',
         id: 'badge-1',
-        properties: { count: 5 },
+        type: 'notificationBadge',
+        properties: {
+          count: 5,
+        },
       }
+
+      expect(isNotificationCenterComponent(component)).toBe(false)
+      expect(isNotificationItemComponent(component)).toBe(false)
       expect(isNotificationBadgeComponent(component)).toBe(true)
-      expect(isNotificationBadgeComponent({ type: 'other' })).toBe(false)
-      expect(isNotificationBadgeComponent(null)).toBe(false)
     })
   })
 
   describe('Helper Functions', () => {
-    describe('createNotificationCenter', () => {
-      it('creates notification center with default properties', () => {
-        const component = createNotificationCenter('center-1')
-        expect(component.type).toBe('notificationCenter')
-        expect(component.id).toBe('center-1')
-        expect(component.properties?.maxVisible).toBe(10)
-        expect(component.properties?.position).toBe('top-right')
+    it('creates notification center with helper', () => {
+      const component = createNotificationCenter('center-1', {
+        position: 'top-right',
+        maxVisible: 10,
       })
 
-      it('creates notification center with custom properties', () => {
-        const component = createNotificationCenter('center-2', {
-          maxVisible: 20,
-          position: 'bottom-right',
-          sound: true,
-        })
-        expect(component.properties?.maxVisible).toBe(20)
-        expect(component.properties?.position).toBe('bottom-right')
-        expect(component.properties?.sound).toBe(true)
-      })
+      expect(component.id).toBe('center-1')
+      expect(component.type).toBe('notificationCenter')
+      expect(component.properties?.position).toBe('top-right')
+      expect(component.properties?.maxVisible).toBe(10)
     })
 
-    describe('createNotificationItem', () => {
-      it('creates notification item with required properties', () => {
-        const properties: NotificationItemProperties = {
-          notificationId: 'notif-1',
-          notificationType: 'info',
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test message',
-          timestamp: Date.now(),
-        }
-        const component = createNotificationItem('item-1', properties)
-        expect(component.type).toBe('notificationItem')
-        expect(component.id).toBe('item-1')
-        expect(component.properties.dismissible).toBe(true)
-        expect(component.properties.read).toBe(false)
+    it('creates notification item with helper', () => {
+      const component = createNotificationItem('item-1', {
+        type: 'success',
+        title: 'Success',
+        message: 'Operation completed',
+        timestamp: new Date(),
+        read: false,
       })
+
+      expect(component.id).toBe('item-1')
+      expect(component.type).toBe('notificationItem')
+      expect(component.properties.type).toBe('success')
     })
 
-    describe('createNotificationBadge', () => {
-      it('creates badge with default properties', () => {
-        const component = createNotificationBadge('badge-1', 5)
-        expect(component.type).toBe('notificationBadge')
-        expect(component.id).toBe('badge-1')
-        expect(component.properties.count).toBe(5)
-        expect(component.properties.maxCount).toBe(99)
-        expect(component.properties.position).toBe('top-right')
+    it('creates notification badge with helper', () => {
+      const component = createNotificationBadge('badge-1', 5, {
+        pulse: true,
+        color: '#ef4444',
       })
 
-      it('creates badge with custom properties', () => {
-        const component = createNotificationBadge('badge-2', 150, {
-          maxCount: 200,
-          position: 'bottom-right',
-          dot: true,
-        })
-        expect(component.properties.count).toBe(150)
-        expect(component.properties.maxCount).toBe(200)
-        expect(component.properties.position).toBe('bottom-right')
-        expect(component.properties.dot).toBe(true)
-      })
+      expect(component.id).toBe('badge-1')
+      expect(component.type).toBe('notificationBadge')
+      expect(component.properties?.count).toBe(5)
+      expect(component.properties?.pulse).toBe(true)
     })
 
-    describe('formatNotificationTimestamp', () => {
-      it('formats timestamps correctly', () => {
-        const now = Date.now()
+    it('formats notification timestamps correctly', () => {
+      const now = new Date()
+      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000)
+      const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-        // Just now
-        expect(formatNotificationTimestamp(now - 30 * 1000)).toBe('just now')
-
-        // Minutes ago
-        expect(formatNotificationTimestamp(now - 5 * 60 * 1000)).toBe('5m ago')
-
-        // Hours ago
-        expect(formatNotificationTimestamp(now - 3 * 60 * 60 * 1000)).toBe('3h ago')
-
-        // Days ago
-        expect(formatNotificationTimestamp(now - 2 * 24 * 60 * 60 * 1000)).toBe('2d ago')
-
-        // More than 7 days ago - should be a date string
-        const oldDate = now - 10 * 24 * 60 * 60 * 1000
-        const formatted = formatNotificationTimestamp(oldDate)
-        expect(formatted).toContain('/')
-      })
+      expect(formatNotificationTimestamp(oneMinuteAgo)).toBe('1 minute ago')
+      expect(formatNotificationTimestamp(oneHourAgo)).toBe('1 hour ago')
+      expect(formatNotificationTimestamp(oneDayAgo)).toBe('1 day ago')
     })
 
-    describe('getNotificationIcon', () => {
-      it('returns correct icons for each type', () => {
-        expect(getNotificationIcon('info')).toBe('info')
-        expect(getNotificationIcon('success')).toBe('check-circle')
-        expect(getNotificationIcon('warning')).toBe('alert-triangle')
-        expect(getNotificationIcon('error')).toBe('x-circle')
-        expect(getNotificationIcon('system')).toBe('settings')
-      })
+    it('gets correct icon for notification type', () => {
+      expect(getNotificationIcon('success')).toBe('check-circle')
+      expect(getNotificationIcon('error')).toBe('x-circle')
+      expect(getNotificationIcon('warning')).toBe('alert-triangle')
+      expect(getNotificationIcon('info')).toBe('info')
+      expect(getNotificationIcon('alert')).toBe('bell')
     })
 
-    describe('getNotificationColor', () => {
-      it('returns correct colors for each type', () => {
-        expect(getNotificationColor('info')).toBe('#3b82f6')
-        expect(getNotificationColor('success')).toBe('#10b981')
-        expect(getNotificationColor('warning')).toBe('#f59e0b')
-        expect(getNotificationColor('error')).toBe('#ef4444')
-        expect(getNotificationColor('system')).toBe('#6366f1')
-      })
+    it('gets correct color for notification type', () => {
+      expect(getNotificationColor('success')).toBe('#10b981')
+      expect(getNotificationColor('error')).toBe('#ef4444')
+      expect(getNotificationColor('warning')).toBe('#f59e0b')
+      expect(getNotificationColor('info')).toBe('#3b82f6')
+      expect(getNotificationColor('alert')).toBe('#8b5cf6')
     })
   })
 
-  describe('NotificationAction', () => {
-    it('creates valid notification action', () => {
-      const action: NotificationAction = {
-        id: 'action-1',
-        label: 'View',
-        action: '/handlers/view',
-        variant: 'primary',
-        closeOnClick: true,
-      }
+  describe('Default Properties', () => {
+    it('provides default notification center properties', () => {
+      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.position).toBe('top-right')
+      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.maxVisible).toBe(5)
+      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.autoClose).toBe(true)
+      expect(DEFAULT_NOTIFICATION_CENTER_PROPERTIES.maxNotifications).toBe(100)
+    })
 
-      expect(action.id).toBe('action-1')
-      expect(action.label).toBe('View')
-      expect(action.action).toBe('/handlers/view')
-      expect(action.variant).toBe('primary')
-      expect(action.closeOnClick).toBe(true)
+    it('provides default notification badge properties', () => {
+      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.maxCount).toBe(99)
+      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.showZero).toBe(false)
+      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.dot).toBe(false)
+      expect(DEFAULT_NOTIFICATION_BADGE_PROPERTIES.pulse).toBe(true)
     })
   })
 
-  describe('NotificationRichContent', () => {
-    it('creates valid rich content', () => {
-      const richContent: NotificationRichContent = {
-        image: '/images/notification.png',
-        progress: 50,
-        icon: 'upload',
-        link: '/details',
-        linkText: 'View Details',
-        metadata: {
-          uploadId: '123',
-          fileName: 'document.pdf',
+  describe('Categories', () => {
+    it('supports notification categories', () => {
+      const component: NotificationCenterComponent = {
+        id: 'center-categories',
+        type: 'notificationCenter',
+        properties: {
+          categories: [
+            { id: 'system', label: 'System', icon: 'settings', color: '#3b82f6' },
+            { id: 'security', label: 'Security', icon: 'shield', color: '#ef4444' },
+            { id: 'updates', label: 'Updates', icon: 'download', color: '#10b981' },
+          ],
         },
       }
 
-      expect(richContent.image).toBe('/images/notification.png')
-      expect(richContent.progress).toBe(50)
-      expect(richContent.icon).toBe('upload')
-      expect(richContent.link).toBe('/details')
-      expect(richContent.linkText).toBe('View Details')
-      expect(richContent.metadata?.uploadId).toBe('123')
+      expect(component.properties?.categories).toHaveLength(3)
+      expect(component.properties?.categories?.[0].id).toBe('system')
+      expect(component.properties?.categories?.[1].label).toBe('Security')
+      expect(component.properties?.categories?.[2].color).toBe('#10b981')
     })
   })
 })

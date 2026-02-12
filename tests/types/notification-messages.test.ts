@@ -1,56 +1,31 @@
 /**
  * Notification Message Tests
- * Comprehensive tests for notification message types and type guards
+ * Comprehensive tests for notification message types and helpers
  */
 
 import { describe, it, expect } from 'vitest'
-import {
-  NotificationData,
-  NotificationUpdateData,
-  NotificationFilters,
-  NotificationListItem,
+import type {
   NotificationCreateMessage,
-  NotificationCreatedMessage,
   NotificationUpdateMessage,
-  NotificationUpdatedMessage,
   NotificationDeleteMessage,
-  NotificationDeletedMessage,
   NotificationMarkAllReadMessage,
-  NotificationAllMarkedReadMessage,
   NotificationDeleteAllMessage,
-  NotificationAllDeletedMessage,
   NotificationActionMessage,
   NotificationListRequestMessage,
-  NotificationListResponseMessage,
   NotificationGetRequestMessage,
-  NotificationGetResponseMessage,
   NotificationSettingsUpdateMessage,
-  NotificationSettingsUpdatedMessage,
-  NotificationCountMessage,
-  NotificationSubscribeMessage,
-  NotificationUnsubscribeMessage,
-  NotificationErrorMessage,
+  NotificationMessage,
+} from '../../src/types/index.js'
+import {
   isNotificationCreateMessage,
-  isNotificationCreatedMessage,
   isNotificationUpdateMessage,
-  isNotificationUpdatedMessage,
   isNotificationDeleteMessage,
-  isNotificationDeletedMessage,
   isNotificationMarkAllReadMessage,
-  isNotificationAllMarkedReadMessage,
   isNotificationDeleteAllMessage,
-  isNotificationAllDeletedMessage,
   isNotificationActionMessage,
   isNotificationListRequestMessage,
-  isNotificationListResponseMessage,
   isNotificationGetRequestMessage,
-  isNotificationGetResponseMessage,
   isNotificationSettingsUpdateMessage,
-  isNotificationSettingsUpdatedMessage,
-  isNotificationCountMessage,
-  isNotificationSubscribeMessage,
-  isNotificationUnsubscribeMessage,
-  isNotificationErrorMessage,
   createNotificationCreateMessage,
   createNotificationUpdateMessage,
   createNotificationDeleteMessage,
@@ -59,889 +34,567 @@ import {
 } from '../../src/types/notification-messages.js'
 
 describe('Notification Message Types', () => {
-  describe('NotificationData', () => {
-    it('creates valid notification data', () => {
-      const notification: NotificationData = {
-        id: 'notif-1',
-        type: 'info',
-        priority: 'medium',
-        title: 'Test Notification',
-        message: 'This is a test message',
-        timestamp: Date.now(),
-        read: false,
-      }
-
-      expect(notification.id).toBe('notif-1')
-      expect(notification.type).toBe('info')
-      expect(notification.priority).toBe('medium')
-      expect(notification.title).toBe('Test Notification')
-      expect(notification.message).toBe('This is a test message')
-      expect(notification.read).toBe(false)
-    })
-
-    it('creates notification with all optional fields', () => {
-      const notification: NotificationData = {
-        id: 'notif-2',
-        type: 'success',
-        priority: 'high',
-        title: 'Success',
-        message: 'Operation completed',
-        timestamp: Date.now(),
-        read: false,
-        actions: [
-          {
-            id: 'action-1',
-            label: 'View',
-            action: '/handlers/view',
-          },
-        ],
-        richContent: {
-          image: '/images/success.png',
-          progress: 100,
-        },
-        category: 'system',
-        dismissible: true,
-        avatar: '/avatars/system.png',
-        sender: 'System',
-        link: '/details',
-        expiresAt: Date.now() + 86400000,
-        metadata: { customField: 'value' },
-      }
-
-      expect(notification.actions).toHaveLength(1)
-      expect(notification.richContent?.progress).toBe(100)
-      expect(notification.category).toBe('system')
-      expect(notification.metadata?.customField).toBe('value')
-    })
-  })
-
-  describe('NotificationUpdateData', () => {
-    it('creates valid update data', () => {
-      const update: NotificationUpdateData = {
-        id: 'notif-1',
-        read: true,
-      }
-
-      expect(update.id).toBe('notif-1')
-      expect(update.read).toBe(true)
-    })
-
-    it('creates update with multiple fields', () => {
-      const update: NotificationUpdateData = {
-        id: 'notif-2',
-        read: true,
-        actions: [
-          {
-            id: 'action-1',
-            label: 'Done',
-            action: '/handlers/done',
-          },
-        ],
-        metadata: { updated: true },
-      }
-
-      expect(update.actions).toHaveLength(1)
-      expect(update.metadata?.updated).toBe(true)
-    })
-  })
-
-  describe('NotificationFilters', () => {
-    it('creates valid filters', () => {
-      const filters: NotificationFilters = {
-        type: ['info', 'success'],
-        priority: ['high', 'urgent'],
-        category: ['system', 'security'],
-        read: false,
-        startDate: Date.now() - 86400000,
-        endDate: Date.now(),
-        sender: 'System',
-        query: 'test',
-      }
-
-      expect(filters.type).toHaveLength(2)
-      expect(filters.priority).toHaveLength(2)
-      expect(filters.category).toHaveLength(2)
-      expect(filters.read).toBe(false)
-      expect(filters.query).toBe('test')
-    })
-  })
-
-  describe('NotificationCreateMessage', () => {
-    it('creates valid create message', () => {
-      const notification: NotificationData = {
-        id: 'notif-1',
-        type: 'info',
-        priority: 'medium',
-        title: 'Test',
-        message: 'Test message',
-        timestamp: Date.now(),
-      }
-
+  describe('Create Notification Message', () => {
+    it('creates valid notification create message', () => {
       const message: NotificationCreateMessage = {
         type: 'notificationCreate',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notification,
+        componentId: 'notif-center-1',
+        notification: {
+          type: 'success',
+          title: 'Success',
+          message: 'Operation completed successfully',
+        },
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationCreate')
-      expect(message.surfaceId).toBe('surface-1')
-      expect(message.componentId).toBe('notification-center-1')
-      expect(message.notification.id).toBe('notif-1')
+      expect(message.componentId).toBe('notif-center-1')
+      expect(message.notification.type).toBe('success')
+      expect(message.notification.title).toBe('Success')
     })
 
-    it('is identified by type guard', () => {
-      const message = {
+    it('creates notification with all properties', () => {
+      const message: NotificationCreateMessage = {
         type: 'notificationCreate',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
+        componentId: 'notif-center-1',
         notification: {
-          id: 'notif-1',
-          type: 'info',
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test',
-          timestamp: Date.now(),
+          type: 'error',
+          title: 'Error',
+          message: 'An error occurred',
+          category: 'system',
+          priority: 'high',
+          icon: 'x-circle',
+          avatar: 'https://example.com/avatar.jpg',
+          image: 'https://example.com/error.jpg',
+          actions: [
+            { label: 'Retry', action: 'retry', primary: true },
+            { label: 'Dismiss', action: 'dismiss' },
+          ],
+          autoClose: false,
+          richContent: {
+            html: '<p>Error details</p>',
+          },
+          metadata: { errorCode: 'ERR_001' },
         },
-      }
-      expect(isNotificationCreateMessage(message)).toBe(true)
-      expect(isNotificationCreateMessage({ type: 'other' })).toBe(false)
-    })
-  })
-
-  describe('NotificationCreatedMessage', () => {
-    it('creates valid created message', () => {
-      const message: NotificationCreatedMessage = {
-        type: 'notificationCreated',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notificationId: 'notif-1',
-        success: true,
         timestamp: Date.now(),
       }
 
-      expect(message.type).toBe('notificationCreated')
-      expect(message.notificationId).toBe('notif-1')
-      expect(message.success).toBe(true)
+      expect(message.notification.category).toBe('system')
+      expect(message.notification.priority).toBe('high')
+      expect(message.notification.actions).toHaveLength(2)
+      expect(message.notification.metadata?.errorCode).toBe('ERR_001')
     })
 
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationCreated',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notificationId: 'notif-1',
-        success: true,
-      }
-      expect(isNotificationCreatedMessage(message)).toBe(true)
+    it('creates message using helper function', () => {
+      const message = createNotificationCreateMessage('notif-center-1', {
+        type: 'info',
+        title: 'Info',
+        message: 'Information message',
+      })
+
+      expect(message.type).toBe('notificationCreate')
+      expect(message.componentId).toBe('notif-center-1')
+      expect(message.notification.type).toBe('info')
+      expect(message.timestamp).toBeDefined()
     })
   })
 
-  describe('NotificationUpdateMessage', () => {
-    it('creates valid update message', () => {
+  describe('Update Notification Message', () => {
+    it('creates valid notification update message', () => {
       const message: NotificationUpdateMessage = {
         type: 'notificationUpdate',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        update: {
-          id: 'notif-1',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        updates: {
           read: true,
         },
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationUpdate')
-      expect(message.update.id).toBe('notif-1')
-      expect(message.update.read).toBe(true)
+      expect(message.notificationId).toBe('notif-123')
+      expect(message.updates.read).toBe(true)
     })
 
-    it('is identified by type guard', () => {
-      const message = {
+    it('creates message with all update fields', () => {
+      const snoozeUntil = new Date(Date.now() + 3600000)
+      const message: NotificationUpdateMessage = {
         type: 'notificationUpdate',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        update: { id: 'notif-1', read: true },
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        updates: {
+          read: true,
+          snoozed: true,
+          snoozeUntil,
+          archived: false,
+        },
+        timestamp: Date.now(),
       }
-      expect(isNotificationUpdateMessage(message)).toBe(true)
+
+      expect(message.updates.read).toBe(true)
+      expect(message.updates.snoozed).toBe(true)
+      expect(message.updates.snoozeUntil).toBe(snoozeUntil)
+      expect(message.updates.archived).toBe(false)
+    })
+
+    it('creates message using helper function', () => {
+      const message = createNotificationUpdateMessage('notif-center-1', 'notif-123', {
+        read: true,
+      })
+
+      expect(message.type).toBe('notificationUpdate')
+      expect(message.notificationId).toBe('notif-123')
+      expect(message.updates.read).toBe(true)
+      expect(message.timestamp).toBeDefined()
     })
   })
 
-  describe('NotificationDeleteMessage', () => {
-    it('creates valid delete message', () => {
+  describe('Delete Notification Message', () => {
+    it('creates valid notification delete message', () => {
       const message: NotificationDeleteMessage = {
         type: 'notificationDelete',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notificationId: 'notif-1',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationDelete')
-      expect(message.notificationId).toBe('notif-1')
+      expect(message.notificationId).toBe('notif-123')
     })
 
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationDelete',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notificationId: 'notif-1',
-      }
-      expect(isNotificationDeleteMessage(message)).toBe(true)
+    it('creates message using helper function', () => {
+      const message = createNotificationDeleteMessage('notif-center-1', 'notif-123')
+
+      expect(message.type).toBe('notificationDelete')
+      expect(message.notificationId).toBe('notif-123')
+      expect(message.timestamp).toBeDefined()
     })
   })
 
-  describe('NotificationMarkAllReadMessage', () => {
-    it('creates valid mark all read message', () => {
+  describe('Mark All Read Message', () => {
+    it('creates mark all read message without category', () => {
       const message: NotificationMarkAllReadMessage = {
         type: 'notificationMarkAllRead',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
+        componentId: 'notif-center-1',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationMarkAllRead')
+      expect(message.category).toBeUndefined()
     })
 
-    it('creates message with filters', () => {
+    it('creates mark all read message with category', () => {
       const message: NotificationMarkAllReadMessage = {
         type: 'notificationMarkAllRead',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        filters: {
-          type: ['info'],
-          read: false,
-        },
+        componentId: 'notif-center-1',
+        category: 'system',
         timestamp: Date.now(),
       }
 
-      expect(message.filters?.type).toEqual(['info'])
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationMarkAllRead',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-      }
-      expect(isNotificationMarkAllReadMessage(message)).toBe(true)
+      expect(message.type).toBe('notificationMarkAllRead')
+      expect(message.category).toBe('system')
     })
   })
 
-  describe('NotificationDeleteAllMessage', () => {
-    it('creates valid delete all message', () => {
+  describe('Delete All Message', () => {
+    it('creates delete all message without category', () => {
       const message: NotificationDeleteAllMessage = {
         type: 'notificationDeleteAll',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
+        componentId: 'notif-center-1',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationDeleteAll')
+      expect(message.category).toBeUndefined()
     })
 
-    it('creates message with filters', () => {
+    it('creates delete all message with category', () => {
       const message: NotificationDeleteAllMessage = {
         type: 'notificationDeleteAll',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        filters: {
-          read: true,
-        },
+        componentId: 'notif-center-1',
+        category: 'alerts',
         timestamp: Date.now(),
       }
 
-      expect(message.filters?.read).toBe(true)
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationDeleteAll',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-      }
-      expect(isNotificationDeleteAllMessage(message)).toBe(true)
+      expect(message.type).toBe('notificationDeleteAll')
+      expect(message.category).toBe('alerts')
     })
   })
 
-  describe('NotificationActionMessage', () => {
-    it('creates valid action message', () => {
+  describe('Notification Action Message', () => {
+    it('creates notification action message', () => {
       const message: NotificationActionMessage = {
         type: 'notificationAction',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notificationId: 'notif-1',
-        actionId: 'action-1',
-        action: '/handlers/action',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        action: 'retry',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationAction')
-      expect(message.notificationId).toBe('notif-1')
-      expect(message.actionId).toBe('action-1')
-      expect(message.action).toBe('/handlers/action')
+      expect(message.notificationId).toBe('notif-123')
+      expect(message.action).toBe('retry')
     })
 
-    it('is identified by type guard', () => {
-      const message = {
+    it('creates action message with context', () => {
+      const message: NotificationActionMessage = {
         type: 'notificationAction',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notificationId: 'notif-1',
-        actionId: 'action-1',
-        action: '/handlers/action',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        action: 'retry',
+        context: { attemptNumber: 2, errorCode: 'ERR_001' },
+        timestamp: Date.now(),
       }
-      expect(isNotificationActionMessage(message)).toBe(true)
+
+      expect(message.context?.attemptNumber).toBe(2)
+      expect(message.context?.errorCode).toBe('ERR_001')
+    })
+
+    it('creates message using helper function', () => {
+      const message = createNotificationActionMessage(
+        'notif-center-1',
+        'notif-123',
+        'dismiss',
+        { reason: 'user_dismissed' }
+      )
+
+      expect(message.type).toBe('notificationAction')
+      expect(message.action).toBe('dismiss')
+      expect(message.context?.reason).toBe('user_dismissed')
+      expect(message.timestamp).toBeDefined()
     })
   })
 
-  describe('NotificationListRequestMessage', () => {
-    it('creates valid list request message', () => {
+  describe('List Notifications Request Message', () => {
+    it('creates list request without filters', () => {
       const message: NotificationListRequestMessage = {
         type: 'notificationListRequest',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        limit: 50,
-        offset: 0,
-        sortOrder: 'desc',
+        componentId: 'notif-center-1',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationListRequest')
-      expect(message.limit).toBe(50)
-      expect(message.offset).toBe(0)
-      expect(message.sortOrder).toBe('desc')
+      expect(message.filters).toBeUndefined()
     })
 
-    it('creates message with filters', () => {
+    it('creates list request with filters', () => {
       const message: NotificationListRequestMessage = {
         type: 'notificationListRequest',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
+        componentId: 'notif-center-1',
         filters: {
-          type: ['info', 'success'],
+          type: ['error', 'warning'],
+          category: ['system', 'security'],
           read: false,
         },
         limit: 20,
         offset: 0,
+        sortBy: 'timestamp',
+        sortOrder: 'desc',
         timestamp: Date.now(),
       }
 
-      expect(message.filters?.type).toHaveLength(2)
+      expect(message.filters?.type).toEqual(['error', 'warning'])
+      expect(message.filters?.category).toEqual(['system', 'security'])
       expect(message.filters?.read).toBe(false)
+      expect(message.limit).toBe(20)
+      expect(message.sortBy).toBe('timestamp')
     })
 
-    it('is identified by type guard', () => {
-      const message = {
+    it('creates list request with date filters', () => {
+      const dateFrom = new Date('2024-01-01')
+      const dateTo = new Date('2024-12-31')
+
+      const message: NotificationListRequestMessage = {
         type: 'notificationListRequest',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-      }
-      expect(isNotificationListRequestMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationListResponseMessage', () => {
-    it('creates valid list response message', () => {
-      const notifications: NotificationListItem[] = [
-        {
-          id: 'notif-1',
-          type: 'info',
-          priority: 'medium',
-          title: 'Test 1',
-          message: 'Message 1',
-          timestamp: Date.now(),
-          read: false,
+        componentId: 'notif-center-1',
+        filters: {
+          dateFrom,
+          dateTo,
         },
-        {
-          id: 'notif-2',
-          type: 'success',
-          priority: 'high',
-          title: 'Test 2',
-          message: 'Message 2',
-          timestamp: Date.now(),
-          read: true,
-        },
-      ]
-
-      const message: NotificationListResponseMessage = {
-        type: 'notificationListResponse',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notifications,
-        totalCount: 100,
-        unreadCount: 50,
-        hasMore: true,
         timestamp: Date.now(),
       }
 
-      expect(message.type).toBe('notificationListResponse')
-      expect(message.notifications).toHaveLength(2)
-      expect(message.totalCount).toBe(100)
-      expect(message.unreadCount).toBe(50)
-      expect(message.hasMore).toBe(true)
+      expect(message.filters?.dateFrom).toBe(dateFrom)
+      expect(message.filters?.dateTo).toBe(dateTo)
     })
 
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationListResponse',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notifications: [],
-        totalCount: 0,
-        unreadCount: 0,
-        hasMore: false,
-      }
-      expect(isNotificationListResponseMessage(message)).toBe(true)
+    it('creates message using helper function', () => {
+      const message = createNotificationListRequestMessage(
+        'notif-center-1',
+        { type: ['success'], read: true },
+        10,
+        5
+      )
+
+      expect(message.type).toBe('notificationListRequest')
+      expect(message.filters?.type).toEqual(['success'])
+      expect(message.limit).toBe(10)
+      expect(message.offset).toBe(5)
+      expect(message.timestamp).toBeDefined()
     })
   })
 
-  describe('NotificationGetRequestMessage', () => {
-    it('creates valid get request message', () => {
+  describe('Get Notification Request Message', () => {
+    it('creates get notification request', () => {
       const message: NotificationGetRequestMessage = {
         type: 'notificationGetRequest',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notificationId: 'notif-1',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationGetRequest')
-      expect(message.notificationId).toBe('notif-1')
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationGetRequest',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notificationId: 'notif-1',
-      }
-      expect(isNotificationGetRequestMessage(message)).toBe(true)
+      expect(message.notificationId).toBe('notif-123')
     })
   })
 
-  describe('NotificationGetResponseMessage', () => {
-    it('creates valid get response message', () => {
-      const notification: NotificationData = {
-        id: 'notif-1',
-        type: 'info',
-        priority: 'medium',
-        title: 'Test',
-        message: 'Test message',
-        timestamp: Date.now(),
-      }
-
-      const message: NotificationGetResponseMessage = {
-        type: 'notificationGetResponse',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notification,
-        success: true,
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationGetResponse')
-      expect(message.notification?.id).toBe('notif-1')
-      expect(message.success).toBe(true)
-    })
-
-    it('creates message with null notification', () => {
-      const message: NotificationGetResponseMessage = {
-        type: 'notificationGetResponse',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        notification: null,
-        success: false,
-        timestamp: Date.now(),
-      }
-
-      expect(message.notification).toBeNull()
-      expect(message.success).toBe(false)
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationGetResponse',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        notification: null,
-        success: false,
-      }
-      expect(isNotificationGetResponseMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationSettingsUpdateMessage', () => {
-    it('creates valid settings update message', () => {
+  describe('Settings Update Message', () => {
+    it('creates settings update message', () => {
       const message: NotificationSettingsUpdateMessage = {
         type: 'notificationSettingsUpdate',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
+        componentId: 'notif-center-1',
         settings: {
           enabled: true,
-          sound: false,
+          soundEnabled: false,
+          vibrationEnabled: true,
+          categories: {
+            system: true,
+            alerts: false,
+          },
         },
         timestamp: Date.now(),
       }
 
       expect(message.type).toBe('notificationSettingsUpdate')
       expect(message.settings.enabled).toBe(true)
-      expect(message.settings.sound).toBe(false)
+      expect(message.settings.soundEnabled).toBe(false)
+      expect(message.settings.categories?.system).toBe(true)
     })
 
-    it('is identified by type guard', () => {
-      const message = {
+    it('creates partial settings update', () => {
+      const message: NotificationSettingsUpdateMessage = {
         type: 'notificationSettingsUpdate',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        settings: {},
-      }
-      expect(isNotificationSettingsUpdateMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationSettingsUpdatedMessage', () => {
-    it('creates valid settings updated message', () => {
-      const message: NotificationSettingsUpdatedMessage = {
-        type: 'notificationSettingsUpdated',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
+        componentId: 'notif-center-1',
         settings: {
-          enabled: true,
-          sound: false,
-          desktop: false,
-          autoMarkRead: true,
-          channels: {},
-        },
-        success: true,
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationSettingsUpdated')
-      expect(message.settings.enabled).toBe(true)
-      expect(message.success).toBe(true)
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationSettingsUpdated',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        settings: {
-          enabled: true,
-          sound: false,
-          desktop: false,
-          autoMarkRead: false,
-          channels: {},
-        },
-        success: true,
-      }
-      expect(isNotificationSettingsUpdatedMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationCountMessage', () => {
-    it('creates valid count message', () => {
-      const message: NotificationCountMessage = {
-        type: 'notificationCount',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        unreadCount: 5,
-        totalCount: 20,
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationCount')
-      expect(message.unreadCount).toBe(5)
-      expect(message.totalCount).toBe(20)
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationCount',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        unreadCount: 5,
-        totalCount: 20,
-      }
-      expect(isNotificationCountMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationSubscribeMessage', () => {
-    it('creates valid subscribe message', () => {
-      const message: NotificationSubscribeMessage = {
-        type: 'notificationSubscribe',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationSubscribe')
-    })
-
-    it('creates subscribe message with filters', () => {
-      const message: NotificationSubscribeMessage = {
-        type: 'notificationSubscribe',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        filters: {
-          type: ['info', 'warning'],
+          soundEnabled: true,
         },
         timestamp: Date.now(),
       }
 
-      expect(message.filters?.type).toEqual(['info', 'warning'])
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationSubscribe',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-      }
-      expect(isNotificationSubscribeMessage(message)).toBe(true)
+      expect(message.settings.soundEnabled).toBe(true)
+      expect(message.settings.enabled).toBeUndefined()
     })
   })
 
-  describe('NotificationUnsubscribeMessage', () => {
-    it('creates valid unsubscribe message', () => {
-      const message: NotificationUnsubscribeMessage = {
-        type: 'notificationUnsubscribe',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationUnsubscribe')
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationUnsubscribe',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-      }
-      expect(isNotificationUnsubscribeMessage(message)).toBe(true)
-    })
-  })
-
-  describe('NotificationErrorMessage', () => {
-    it('creates valid error message', () => {
-      const message: NotificationErrorMessage = {
-        type: 'notificationError',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        error: 'Notification not found',
-        errorCode: 'NOT_FOUND',
-        timestamp: Date.now(),
-      }
-
-      expect(message.type).toBe('notificationError')
-      expect(message.error).toBe('Notification not found')
-      expect(message.errorCode).toBe('NOT_FOUND')
-    })
-
-    it('creates error message with details', () => {
-      const message: NotificationErrorMessage = {
-        type: 'notificationError',
-        surfaceId: 'surface-1',
-        componentId: 'notification-center-1',
-        error: 'Server error',
-        errorCode: 'SERVER_ERROR',
-        details: {
-          statusCode: 500,
-          message: 'Internal server error',
-        },
-        timestamp: Date.now(),
-      }
-
-      expect(message.details).toBeDefined()
-    })
-
-    it('supports all error codes', () => {
-      const errorCodes: NotificationErrorMessage['errorCode'][] = [
-        'NOT_FOUND',
-        'PERMISSION_DENIED',
-        'INVALID_DATA',
-        'SERVER_ERROR',
-        'RATE_LIMITED',
-      ]
-
-      errorCodes.forEach((errorCode) => {
-        const message: NotificationErrorMessage = {
-          type: 'notificationError',
-          surfaceId: 'surface-1',
-          componentId: 'notification-center-1',
-          error: 'Test error',
-          errorCode,
-          timestamp: Date.now(),
-        }
-        expect(message.errorCode).toBe(errorCode)
-      })
-    })
-
-    it('is identified by type guard', () => {
-      const message = {
-        type: 'notificationError',
-        surfaceId: 'surface-1',
-        componentId: 'comp-1',
-        error: 'Test error',
-        errorCode: 'SERVER_ERROR',
-      }
-      expect(isNotificationErrorMessage(message)).toBe(true)
-    })
-  })
-
-  describe('Helper Functions', () => {
-    describe('createNotificationCreateMessage', () => {
-      it('creates notification create message', () => {
-        const notification: NotificationData = {
-          id: 'notif-1',
+  describe('Type Guards', () => {
+    it('identifies notification create messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationCreate',
+        componentId: 'notif-center-1',
+        notification: {
           type: 'info',
-          priority: 'medium',
-          title: 'Test',
-          message: 'Test message',
-          timestamp: Date.now(),
-        }
+          title: 'Info',
+          message: 'Message',
+        },
+        timestamp: Date.now(),
+      }
 
-        const message = createNotificationCreateMessage('surface-1', 'comp-1', notification)
-
-        expect(message.type).toBe('notificationCreate')
-        expect(message.surfaceId).toBe('surface-1')
-        expect(message.componentId).toBe('comp-1')
-        expect(message.notification).toEqual(notification)
-        expect(message.timestamp).toBeDefined()
-      })
+      expect(isNotificationCreateMessage(message)).toBe(true)
+      expect(isNotificationUpdateMessage(message)).toBe(false)
+      expect(isNotificationDeleteMessage(message)).toBe(false)
     })
 
-    describe('createNotificationUpdateMessage', () => {
-      it('creates notification update message', () => {
-        const update: NotificationUpdateData = {
-          id: 'notif-1',
-          read: true,
-        }
+    it('identifies notification update messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationUpdate',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        updates: { read: true },
+        timestamp: Date.now(),
+      }
 
-        const message = createNotificationUpdateMessage('surface-1', 'comp-1', update)
-
-        expect(message.type).toBe('notificationUpdate')
-        expect(message.surfaceId).toBe('surface-1')
-        expect(message.componentId).toBe('comp-1')
-        expect(message.update).toEqual(update)
-        expect(message.timestamp).toBeDefined()
-      })
+      expect(isNotificationCreateMessage(message)).toBe(false)
+      expect(isNotificationUpdateMessage(message)).toBe(true)
+      expect(isNotificationDeleteMessage(message)).toBe(false)
     })
 
-    describe('createNotificationDeleteMessage', () => {
-      it('creates notification delete message', () => {
-        const message = createNotificationDeleteMessage('surface-1', 'comp-1', 'notif-1')
+    it('identifies notification delete messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationDelete',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        timestamp: Date.now(),
+      }
 
-        expect(message.type).toBe('notificationDelete')
-        expect(message.surfaceId).toBe('surface-1')
-        expect(message.componentId).toBe('comp-1')
-        expect(message.notificationId).toBe('notif-1')
-        expect(message.timestamp).toBeDefined()
-      })
+      expect(isNotificationCreateMessage(message)).toBe(false)
+      expect(isNotificationUpdateMessage(message)).toBe(false)
+      expect(isNotificationDeleteMessage(message)).toBe(true)
     })
 
-    describe('createNotificationListRequestMessage', () => {
-      it('creates list request message with defaults', () => {
-        const message = createNotificationListRequestMessage('surface-1', 'comp-1')
+    it('identifies mark all read messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationMarkAllRead',
+        componentId: 'notif-center-1',
+        timestamp: Date.now(),
+      }
 
-        expect(message.type).toBe('notificationListRequest')
-        expect(message.surfaceId).toBe('surface-1')
-        expect(message.componentId).toBe('comp-1')
-        expect(message.limit).toBe(50)
-        expect(message.offset).toBe(0)
-        expect(message.sortOrder).toBe('desc')
-        expect(message.timestamp).toBeDefined()
-      })
-
-      it('creates list request message with custom parameters', () => {
-        const filters: NotificationFilters = {
-          type: ['info'],
-          read: false,
-        }
-
-        const message = createNotificationListRequestMessage('surface-1', 'comp-1', filters, 20, 10)
-
-        expect(message.filters).toEqual(filters)
-        expect(message.limit).toBe(20)
-        expect(message.offset).toBe(10)
-      })
+      expect(isNotificationMarkAllReadMessage(message)).toBe(true)
+      expect(isNotificationDeleteAllMessage(message)).toBe(false)
     })
 
-    describe('createNotificationActionMessage', () => {
-      it('creates notification action message', () => {
-        const message = createNotificationActionMessage(
-          'surface-1',
-          'comp-1',
-          'notif-1',
-          'action-1',
-          '/handlers/action'
-        )
+    it('identifies delete all messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationDeleteAll',
+        componentId: 'notif-center-1',
+        timestamp: Date.now(),
+      }
 
-        expect(message.type).toBe('notificationAction')
-        expect(message.surfaceId).toBe('surface-1')
-        expect(message.componentId).toBe('comp-1')
-        expect(message.notificationId).toBe('notif-1')
-        expect(message.actionId).toBe('action-1')
-        expect(message.action).toBe('/handlers/action')
-        expect(message.timestamp).toBeDefined()
-      })
+      expect(isNotificationMarkAllReadMessage(message)).toBe(false)
+      expect(isNotificationDeleteAllMessage(message)).toBe(true)
+    })
+
+    it('identifies action messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationAction',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        action: 'retry',
+        timestamp: Date.now(),
+      }
+
+      expect(isNotificationActionMessage(message)).toBe(true)
+      expect(isNotificationCreateMessage(message)).toBe(false)
+    })
+
+    it('identifies list request messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        timestamp: Date.now(),
+      }
+
+      expect(isNotificationListRequestMessage(message)).toBe(true)
+      expect(isNotificationGetRequestMessage(message)).toBe(false)
+    })
+
+    it('identifies get request messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationGetRequest',
+        componentId: 'notif-center-1',
+        notificationId: 'notif-123',
+        timestamp: Date.now(),
+      }
+
+      expect(isNotificationGetRequestMessage(message)).toBe(true)
+      expect(isNotificationListRequestMessage(message)).toBe(false)
+    })
+
+    it('identifies settings update messages', () => {
+      const message: NotificationMessage = {
+        type: 'notificationSettingsUpdate',
+        componentId: 'notif-center-1',
+        settings: { enabled: true },
+        timestamp: Date.now(),
+      }
+
+      expect(isNotificationSettingsUpdateMessage(message)).toBe(true)
+      expect(isNotificationCreateMessage(message)).toBe(false)
     })
   })
 
-  describe('Type Guard Coverage', () => {
-    it('all type guards return false for null/undefined', () => {
-      expect(isNotificationCreateMessage(null)).toBe(false)
-      expect(isNotificationCreatedMessage(undefined)).toBe(false)
-      expect(isNotificationUpdateMessage(null)).toBe(false)
-      expect(isNotificationUpdatedMessage(undefined)).toBe(false)
-      expect(isNotificationDeleteMessage(null)).toBe(false)
-      expect(isNotificationDeletedMessage(undefined)).toBe(false)
-      expect(isNotificationMarkAllReadMessage(null)).toBe(false)
-      expect(isNotificationAllMarkedReadMessage(undefined)).toBe(false)
-      expect(isNotificationDeleteAllMessage(null)).toBe(false)
-      expect(isNotificationAllDeletedMessage(undefined)).toBe(false)
-      expect(isNotificationActionMessage(null)).toBe(false)
-      expect(isNotificationListRequestMessage(undefined)).toBe(false)
-      expect(isNotificationListResponseMessage(null)).toBe(false)
-      expect(isNotificationGetRequestMessage(undefined)).toBe(false)
-      expect(isNotificationGetResponseMessage(null)).toBe(false)
-      expect(isNotificationSettingsUpdateMessage(undefined)).toBe(false)
-      expect(isNotificationSettingsUpdatedMessage(null)).toBe(false)
-      expect(isNotificationCountMessage(undefined)).toBe(false)
-      expect(isNotificationSubscribeMessage(null)).toBe(false)
-      expect(isNotificationUnsubscribeMessage(undefined)).toBe(false)
-      expect(isNotificationErrorMessage(null)).toBe(false)
+  describe('Filters', () => {
+    it('supports type filtering', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        filters: {
+          type: ['error', 'warning'],
+        },
+        timestamp: Date.now(),
+      }
+
+      expect(message.filters?.type).toContain('error')
+      expect(message.filters?.type).toContain('warning')
     })
 
-    it('all type guards return false for wrong type', () => {
-      const wrongMessage = { type: 'wrongType' }
-      expect(isNotificationCreateMessage(wrongMessage)).toBe(false)
-      expect(isNotificationCreatedMessage(wrongMessage)).toBe(false)
-      expect(isNotificationUpdateMessage(wrongMessage)).toBe(false)
-      expect(isNotificationUpdatedMessage(wrongMessage)).toBe(false)
-      expect(isNotificationDeleteMessage(wrongMessage)).toBe(false)
-      expect(isNotificationDeletedMessage(wrongMessage)).toBe(false)
-      expect(isNotificationMarkAllReadMessage(wrongMessage)).toBe(false)
-      expect(isNotificationAllMarkedReadMessage(wrongMessage)).toBe(false)
-      expect(isNotificationDeleteAllMessage(wrongMessage)).toBe(false)
-      expect(isNotificationAllDeletedMessage(wrongMessage)).toBe(false)
-      expect(isNotificationActionMessage(wrongMessage)).toBe(false)
-      expect(isNotificationListRequestMessage(wrongMessage)).toBe(false)
-      expect(isNotificationListResponseMessage(wrongMessage)).toBe(false)
-      expect(isNotificationGetRequestMessage(wrongMessage)).toBe(false)
-      expect(isNotificationGetResponseMessage(wrongMessage)).toBe(false)
-      expect(isNotificationSettingsUpdateMessage(wrongMessage)).toBe(false)
-      expect(isNotificationSettingsUpdatedMessage(wrongMessage)).toBe(false)
-      expect(isNotificationCountMessage(wrongMessage)).toBe(false)
-      expect(isNotificationSubscribeMessage(wrongMessage)).toBe(false)
-      expect(isNotificationUnsubscribeMessage(wrongMessage)).toBe(false)
-      expect(isNotificationErrorMessage(wrongMessage)).toBe(false)
+    it('supports category filtering', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        filters: {
+          category: ['system', 'security', 'updates'],
+        },
+        timestamp: Date.now(),
+      }
+
+      expect(message.filters?.category).toHaveLength(3)
+    })
+
+    it('supports priority filtering', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        filters: {
+          priority: ['high', 'urgent'],
+        },
+        timestamp: Date.now(),
+      }
+
+      expect(message.filters?.priority).toEqual(['high', 'urgent'])
+    })
+
+    it('supports archived filtering', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        filters: {
+          archived: false,
+        },
+        timestamp: Date.now(),
+      }
+
+      expect(message.filters?.archived).toBe(false)
+    })
+  })
+
+  describe('Pagination and Sorting', () => {
+    it('supports pagination', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        limit: 25,
+        offset: 50,
+        timestamp: Date.now(),
+      }
+
+      expect(message.limit).toBe(25)
+      expect(message.offset).toBe(50)
+    })
+
+    it('supports sorting by timestamp', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        sortBy: 'timestamp',
+        sortOrder: 'desc',
+        timestamp: Date.now(),
+      }
+
+      expect(message.sortBy).toBe('timestamp')
+      expect(message.sortOrder).toBe('desc')
+    })
+
+    it('supports sorting by priority', () => {
+      const message: NotificationListRequestMessage = {
+        type: 'notificationListRequest',
+        componentId: 'notif-center-1',
+        sortBy: 'priority',
+        sortOrder: 'asc',
+        timestamp: Date.now(),
+      }
+
+      expect(message.sortBy).toBe('priority')
+      expect(message.sortOrder).toBe('asc')
     })
   })
 })
