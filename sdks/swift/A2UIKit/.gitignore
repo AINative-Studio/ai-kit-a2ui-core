@@ -1,0 +1,43 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Swift
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+
+# macOS
+.DS_Store
+
+# Build Artifacts
+*.o
+*.lo
+*.la
+*.al
+.libs
+*.so
+*.so.*
+*.a
+*.dylib
+
+# Coverage
+*.profdata
+*.profraw
+.codecov/
