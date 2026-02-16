@@ -47,3 +47,8 @@ export {
   type CollaborationEventHandler,
   type CollaborationHandlerOptions,
 } from './collaboration-handler.js'
+
+export {
+  OfflineHandler,
+  offlineHandler,
+} from './offline-handler.js'

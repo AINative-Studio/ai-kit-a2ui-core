@@ -28,5 +28,8 @@ export * from './validation/index.js'
 // Integrations
 export * from './integrations/index.js'
 
+// Offline Support (Issue #55)
+export * from './offline/index.js'
+
 // Version
 export const VERSION = '0.1.0-alpha.1'
