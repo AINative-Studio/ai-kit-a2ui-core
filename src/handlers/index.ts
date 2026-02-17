@@ -52,3 +52,13 @@ export {
   OfflineHandler,
   offlineHandler,
 } from './offline-handler.js'
+
+export {
+  EmailBuilderHandler,
+  type EmailBuilderEventType,
+  type EmailBuilderEventData,
+  type EmailBuilderEventHandler,
+  type EmailTemplateStorage,
+  type EmailSender,
+  type EmailBuilderHandlerOptions,
+} from './email-builder-handler.js'
