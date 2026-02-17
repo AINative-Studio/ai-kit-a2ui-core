@@ -1,0 +1,61 @@
+[package]
+name = "a2ui-sdk"
+version = "0.1.0"
+edition = "2021"
+authors = ["AINative Studio <hello@ainative.studio>"]
+description = "Production-ready Rust SDK for A2UI protocol (v0.9-v0.12)"
+license = "MIT"
+repository = "https://github.com/AINative-Studio/ai-kit-a2ui-core"
+keywords = ["a2ui", "websocket", "agent", "ui", "protocol"]
+categories = ["web-programming::websocket", "asynchronous"]
+rust-version = "1.75"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+
+# Async traits
+async-trait = "0.1"
+
+# Logging
+log = "0.4"
+
+# URL parsing
+url = "2.5"
+
+# Futures utilities
+futures-util = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[lib]
+name = "a2ui_sdk"
+path = "src/lib.rs"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+
+[[example]]
+name = "file_upload"
+path = "examples/file_upload.rs"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 1
