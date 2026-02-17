@@ -5,7 +5,7 @@
 import type { ZeroDBComponentType } from './zerodb-components.js'
 
 /**
- * All standard A2UI component types (31 types including video, file upload, notification, and ZeroDB components)
+ * All standard A2UI component types (36 types including video, file upload, notification, email builder, and ZeroDB components)
  */
 export type ComponentType =
   | 'card'
@@ -29,7 +29,8 @@ export type ComponentType =
   | 'videoRecorder'
   | 'videoCall'
   | 'aiVideo'
-  | 'aiVideoPlayer'  | 'fileUpload'
+  | 'aiVideoPlayer'
+  | 'fileUpload'
   | 'authLoginForm'
   | 'authSignupForm'
   | 'authPasswordReset'
@@ -40,6 +41,11 @@ export type ComponentType =
   | 'notificationCenter'
   | 'notificationItem'
   | 'notificationBadge'
+  | 'emailTemplateEditor'
+  | 'emailTemplatePreview'
+  | 'emailTemplateSend'
+  | 'emailTemplateList'
+  | 'emailTemplateVariables'
   | ZeroDBComponentType
 
 /**
