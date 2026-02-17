@@ -49,6 +49,11 @@ export {
 } from './collaboration-handler.js'
 
 export {
+  OfflineHandler,
+  offlineHandler,
+} from './offline-handler.js'
+
+export {
   EmailBuilderHandler,
   type EmailBuilderEventType,
   type EmailBuilderEventData,
