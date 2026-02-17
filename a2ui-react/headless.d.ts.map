@@ -1,0 +1,1 @@
+{"version":3,"file":"headless.d.ts","sourceRoot":"","sources":["../src/headless.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EAAE,YAAY,EAAE,WAAW,EAAE,MAAM,oBAAoB,CAAA;AAC9D,OAAO,EAAE,YAAY,EAAE,YAAY,EAAE,aAAa,EAAE,MAAM,kBAAkB,CAAA;AAE5E,YAAY,EACV,iBAAiB,EACjB,gBAAgB,EAChB,kBAAkB,EAClB,kBAAkB,EAClB,mBAAmB,GACpB,MAAM,kBAAkB,CAAA"}

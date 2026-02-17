@@ -1,0 +1,82 @@
+{
+  "name": "@ainative/ai-kit-a2ui-core",
+  "version": "0.1.0-alpha.1",
+  "description": "Framework-agnostic core library for A2UI protocol (v0.9) - Zero dependencies",
+  "author": "AINative Studio <hello@ainative.studio>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AINative-Studio/ai-kit-a2ui-core.git"
+  },
+  "keywords": [
+    "a2ui",
+    "agent-to-ui",
+    "ai",
+    "json-pointer",
+    "websocket",
+    "framework-agnostic",
+    "zero-dependencies"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "require": "./dist/types/index.cjs"
+    },
+    "./json-pointer": {
+      "types": "./dist/json-pointer/index.d.ts",
+      "import": "./dist/json-pointer/index.js",
+      "require": "./dist/json-pointer/index.cjs"
+    },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "import": "./dist/transport/index.js",
+      "require": "./dist/transport/index.cjs"
+    },
+    "./registry": {
+      "types": "./dist/registry/index.d.ts",
+      "import": "./dist/registry/index.js",
+      "require": "./dist/registry/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/coverage-v8": "^1.0.4",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

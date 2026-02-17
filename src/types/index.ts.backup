@@ -1,0 +1,92 @@
+/**
+ * A2UI v0.9 Protocol Types
+ */
+
+// Component Types
+export type {
+  ComponentType,
+  A2UIComponent,
+  TypedA2UIComponent,
+  ComponentProperties,
+} from './components.js'
+
+// Protocol Types
+export type {
+  MessageType,
+  BaseMessage,
+  CreateSurfaceMessage,
+  UpdateComponentsMessage,
+  ComponentUpdate,
+  UpdateDataModelMessage,
+  DataUpdate,
+  DeleteSurfaceMessage,
+  UserActionMessage,
+  ErrorMessage,
+  PingMessage,
+  PongMessage,
+  A2UIMessage,
+} from './protocol.js'
+
+// Type Guards
+export {
+  isCreateSurfaceMessage,
+  isUpdateComponentsMessage,
+  isUpdateDataModelMessage,
+  isDeleteSurfaceMessage,
+  isUserActionMessage,
+  isErrorMessage,
+  isPingMessage,
+  isPongMessage,
+} from './protocol.js'
+
+// AI Component Properties (Issue #34)
+export type {
+  AITranscriptionOptions,
+  AIHighlightOptions,
+  AISummaryOptions,
+  ZeroDBStorageOptions,
+  VideoRecorderAIOptions,
+  LiveTranscriptionOptions,
+  LiveCaptionsOptions,
+  TranslationOptions,
+  NoiseCancellationOptions,
+  SpeakerIdentificationOptions,
+  ActionItemDetectionOptions,
+  VideoCallAIOptions,
+  AIVideoTemplateOptions,
+  VoiceSynthesisOptions,
+  StreamingGenerationOptions,
+  AIVideoGenerationOptions,
+  InteractiveQAOptions,
+  ConversationalControlOptions,
+  SmartChaptersOptions,
+  SemanticSearchOptions,
+  VideoProgressOptions,
+  AIVideoPlayerInteractiveOptions,
+  EnhancedVideoRecorderProperties,
+  EnhancedVideoCallProperties,
+  EnhancedAIVideoProperties,
+  EnhancedAIVideoPlayerProperties,
+} from './ai-component-properties.js'
+
+export { DEFAULT_AI_PROPERTIES } from './ai-component-properties.js'
+
+// AI Validation
+export type { ValidationResult, ValidationError, JSONSchema } from './validation.js'
+
+export {
+  validateAIComponentProperties,
+  validateTranscriptionConfig,
+  validateHighlightConfig,
+  validateSummaryConfig,
+  validateSemanticSearchConfig,
+  validateQAConfig,
+  isAIComponent,
+  getAIComponentSchema,
+  validateConfidenceThreshold,
+  validateLanguageCode,
+  validateURL,
+  validateJSONPointer,
+} from './ai-validation.js'
+
+export { aiComponentSchemas } from './ai-component-schemas.js'
