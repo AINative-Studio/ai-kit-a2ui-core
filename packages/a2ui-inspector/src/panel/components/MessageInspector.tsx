@@ -2,7 +2,8 @@
  * MessageInspector component - displays and filters A2UI protocol messages
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { FixedSizeList as List } from 'react-window'
 import type { CapturedMessage, MessageFilter } from '@/shared/types'
 import styles from './MessageInspector.module.css'
 
@@ -12,10 +13,67 @@ interface MessageInspectorProps {
   onExport?: () => void
 }
 
+interface MessageRowProps {
+  index: number
+  style: React.CSSProperties
+  data: {
+    messages: CapturedMessage[]
+    selectedId: string | null
+    onSelect: (id: string) => void
+  }
+}
+
+const MessageRow = ({ index, style, data }: MessageRowProps): JSX.Element => {
+  const { messages, selectedId, onSelect } = data
+  const msg = messages[index]
+
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onSelect(msg.id)
+    }
+  }
+
+  return (
+    <div
+      style={style}
+      role="listitem"
+      tabIndex={0}
+      className={`${styles.message} ${msg.id === selectedId ? styles.selected : ''}`}
+      onClick={() => onSelect(msg.id)}
+      onKeyDown={handleKeyDown}
+    >
+      <span className={`${styles.direction} ${styles[msg.direction]}`}>
+        {msg.direction}
+      </span>
+      <span className={styles.type}>{msg.messageType}</span>
+      <span className={styles.time}>
+        {new Date(msg.timestamp).toLocaleTimeString()}
+      </span>
+    </div>
+  )
+}
+
 export function MessageInspector({ messages, onClear, onExport }: MessageInspectorProps): JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<MessageFilter>({})
   const [searchTerm, setSearchTerm] = useState('')
+  const listRef = useRef<HTMLDivElement>(null)
+  const [listHeight, setListHeight] = useState(600)
+
+  // Update list height based on container size
+  useEffect(() => {
+    if (!listRef.current) return
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setListHeight(entry.contentRect.height)
+      }
+    })
+
+    resizeObserver.observe(listRef.current)
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const filteredMessages = useMemo(() => {
     let result = messages
@@ -51,12 +109,9 @@ export function MessageInspector({ messages, onClear, onExport }: MessageInspect
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent, messageId: string): void => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      setSelectedId(messageId)
-    }
-  }
+  // Use virtualization for lists with more than 50 messages
+  const shouldVirtualize = filteredMessages.length > 50
+  const ITEM_HEIGHT = 40 // Height of each message row in pixels
 
   if (messages.length === 0) {
     return (
@@ -125,27 +180,39 @@ export function MessageInspector({ messages, onClear, onExport }: MessageInspect
       </div>
 
       <div className={styles.content}>
-        <div className={styles.list}>
-          <ul role="list" aria-label="Message list" className={styles.messages}>
-            {filteredMessages.map((msg) => (
-              <li
-                key={msg.id}
-                role="listitem"
-                tabIndex={0}
-                className={`${styles.message} ${msg.id === selectedId ? styles.selected : ''}`}
-                onClick={() => setSelectedId(msg.id)}
-                onKeyDown={(e) => handleKeyDown(e, msg.id)}
-              >
-                <span className={`${styles.direction} ${styles[msg.direction]}`}>
-                  {msg.direction}
-                </span>
-                <span className={styles.type}>{msg.messageType}</span>
-                <span className={styles.time}>
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className={styles.list} ref={listRef}>
+          {shouldVirtualize ? (
+            <List
+              height={listHeight}
+              itemCount={filteredMessages.length}
+              itemSize={ITEM_HEIGHT}
+              width="100%"
+              itemData={{
+                messages: filteredMessages,
+                selectedId,
+                onSelect: setSelectedId
+              }}
+              role="list"
+              aria-label="Message list"
+            >
+              {MessageRow}
+            </List>
+          ) : (
+            <div role="list" aria-label="Message list" className={styles.messages}>
+              {filteredMessages.map((msg, index) => (
+                <MessageRow
+                  key={msg.id}
+                  index={index}
+                  style={{}}
+                  data={{
+                    messages: filteredMessages,
+                    selectedId,
+                    onSelect: setSelectedId
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {selectedMessage && (

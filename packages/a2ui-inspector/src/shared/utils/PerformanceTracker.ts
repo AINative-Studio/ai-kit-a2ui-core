@@ -32,12 +32,19 @@ export class PerformanceTracker {
   private connectionHistory: ConnectionHistory[] = []
   private messageTimings = new Map<string, number>()
   private maxHistorySize = 1000
+  private now: () => number
+
+  constructor(nowFunction?: () => number) {
+    // Use provided timer function or default to Date.now()
+    // Date.now() is mockable with vi.useFakeTimers()
+    this.now = nowFunction ?? (() => Date.now())
+  }
 
   /**
    * Start timing a message
    */
   startMessageTiming(messageId: string): void {
-    this.messageTimings.set(messageId, performance.now())
+    this.messageTimings.set(messageId, this.now())
   }
 
   /**
@@ -47,7 +54,7 @@ export class PerformanceTracker {
     const startTime = this.messageTimings.get(messageId)
     if (startTime === undefined) return
 
-    const latency = performance.now() - startTime
+    const latency = this.now() - startTime
     this.trackMessageLatency(latency)
     this.messageTimings.delete(messageId)
   }
@@ -57,7 +64,7 @@ export class PerformanceTracker {
    */
   trackMessageLatency(latency: number): void {
     const metric: MetricHistory = {
-      timestamp: Date.now(),
+      timestamp: this.now(),
       value: latency
     }
 
@@ -70,7 +77,7 @@ export class PerformanceTracker {
    */
   trackRenderTime(component: string, duration: number): void {
     const metric: MetricHistory = {
-      timestamp: Date.now(),
+      timestamp: this.now(),
       value: duration,
       context: { component }
     }
@@ -84,7 +91,7 @@ export class PerformanceTracker {
    */
   trackMemoryUsage(bytes: number): void {
     const metric: MetricHistory = {
-      timestamp: Date.now(),
+      timestamp: this.now(),
       value: bytes
     }
 
@@ -97,7 +104,7 @@ export class PerformanceTracker {
    */
   trackConnectionEvent(status: 'connected' | 'disconnected' | 'reconnecting'): void {
     const lastEvent = this.connectionHistory[this.connectionHistory.length - 1]
-    const timestamp = Date.now()
+    const timestamp = this.now()
     const duration = lastEvent ? timestamp - lastEvent.timestamp : undefined
 
     const event: ConnectionHistory = {

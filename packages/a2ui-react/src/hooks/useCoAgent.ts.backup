@@ -1,0 +1,462 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import type { CoAgentOptions, CoAgentHook, CoAgentError, StateConflict } from '../types/coagent.js'
+import type { ErrorMessage } from '@ainative/ai-kit-a2ui-core/types'
+
+// Local type definitions for CoAgent state sync messages
+// These should ideally be exported from core package
+interface ClientStateUpdateMessage {
+  type: 'clientStateUpdate'
+  agentName: string
+  state: Record<string, unknown>
+  version?: number
+  metadata?: {
+    optimistic?: boolean
+    source?: string
+  }
+  timestamp?: number
+}
+
+interface AgentStateUpdateMessage {
+  type: 'agentStateUpdate'
+  agentName: string
+  state: Record<string, unknown>
+  version?: number
+  mergeStrategy?: 'replace' | 'merge' | 'patch'
+  metadata?: {
+    conflicts?: Array<{
+      path: string
+      clientValue: unknown
+      agentValue: unknown
+    }>
+  }
+  timestamp?: number
+}
+
+/**
+ * useCoAgent Hook
+ * Enables bidirectional state synchronization between React UI and AI agents
+ *
+ * @template T - The state type (must be serializable)
+ * @param name - Agent name for routing messages
+ * @param initialState - Initial state value
+ * @param options - Configuration options
+ * @returns CoAgentHook interface with state and control functions
+ *
+ * @example
+ * ```tsx
+ * const { state, setState } = useCoAgent('my-agent', { count: 0 }, {
+ *   transport: myTransport,
+ *   optimistic: true,
+ *   onSync: (direction, state) => console.log('Synced:', direction, state)
+ * })
+ * ```
+ */
+export function useCoAgent<T = Record<string, unknown>>(
+  name: string,
+  initialState: T,
+  options: CoAgentOptions<T>
+): CoAgentHook<T> {
+  const {
+    transport,
+    optimistic = false,
+    conflictResolution = 'last-write-wins',
+    resyncOnReconnect = true,
+    debounce = 0,
+    throttle = 0,
+    retryOnError = false,
+    maxRetries = 3,
+    validate,
+    transform,
+    middleware,
+    serialize,
+    deserialize,
+    onChange,
+    onSync,
+    onConflict,
+    onReconnect,
+    onError,
+  } = options
+
+  const [state, setStateInternal] = useState<T>(initialState)
+  const [isConnected, setIsConnected] = useState<boolean>(transport.isConnected?.() ?? true)
+  const [error, setError] = useState<CoAgentError | null>(null)
+  const [version, setVersion] = useState<number>(0)
+
+  const isMountedRef = useRef<boolean>(true)
+  const previousStateRef = useRef<T>(initialState)
+  const optimisticStateRef = useRef<T | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const throttleTimestampRef = useRef<number>(0)
+
+  const sendStateUpdate = useCallback(
+    async (stateToSend: T, isOptimistic = false) => {
+      console.log('[useCoAgent] sendStateUpdate called, isMounted:', isMountedRef.current)
+      if (!isMountedRef.current) {
+        console.log('[useCoAgent] NOT MOUNTED, returning')
+        return
+      }
+
+      const sendWithRetry = async (attempts = 0): Promise<void> => {
+        try {
+          // Apply custom serialization if provided
+          const serializedState = serialize ? serialize(stateToSend) : stateToSend
+
+          const message: ClientStateUpdateMessage = {
+            type: 'clientStateUpdate',
+            agentName: name,
+            state: serializedState as Record<string, unknown>,
+            version: version + 1,
+            metadata: { optimistic: isOptimistic, source: 'useCoAgent' },
+            timestamp: Date.now(),
+          }
+          transport.send(message)
+          onSync?.('client-to-agent', stateToSend)
+          setVersion((v) => v + 1)
+        } catch (err) {
+          if (retryOnError && attempts < maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempts)))
+            await sendWithRetry(attempts + 1)
+          } else {
+            const sendError: CoAgentError = {
+              code: 'SEND_ERROR',
+              message: err instanceof Error ? err.message : 'Failed to send state update',
+              details: err,
+              timestamp: Date.now(),
+            }
+            setError(sendError)
+            onError?.(sendError)
+            if (optimistic && optimisticStateRef.current) {
+              setStateInternal(optimisticStateRef.current)
+              optimisticStateRef.current = null
+            }
+          }
+        }
+      }
+      await sendWithRetry()
+    },
+    [name, version, transport, onSync, onError, retryOnError, maxRetries, optimistic]
+  )
+
+  const setState = useCallback(
+    (newState: T | ((prevState: T) => T)) => {
+      if (!isMountedRef.current) return
+
+      const resolvedState =
+        typeof newState === 'function' ? (newState as (prevState: T) => T)(state) : newState
+
+      if (validate && !validate(resolvedState)) {
+        throw new Error('State validation failed')
+      }
+
+      const processState = (processedState: T) => {
+        if (optimistic) {
+          optimisticStateRef.current = state
+          setStateInternal(processedState)
+        }
+
+        if (debounce > 0) {
+          if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+          debounceTimerRef.current = setTimeout(() => {
+            sendStateUpdate(processedState, optimistic)
+          }, debounce)
+        } else {
+          sendStateUpdate(processedState, optimistic)
+        }
+
+        if (!optimistic) {
+          setStateInternal(processedState)
+        }
+
+        onChange?.(processedState, previousStateRef.current)
+        previousStateRef.current = processedState
+      }
+
+      if (middleware) {
+        middleware(processState, resolvedState)
+      } else {
+        processState(resolvedState)
+      }
+    },
+    [state, validate, middleware, optimistic, debounce, sendStateUpdate, onChange]
+  )
+
+  const resolveConflict = useCallback(
+    (clientState: T, agentState: T, agentMessage: AgentStateUpdateMessage): T => {
+      const conflict: StateConflict<T> = {
+        clientState,
+        agentState,
+        clientVersion: version,
+        agentVersion: agentMessage.version ?? 0,
+        timestamp: Date.now(),
+      }
+
+      onConflict?.(conflict)
+
+      switch (conflictResolution) {
+        case 'client-wins':
+          return clientState
+        case 'agent-wins':
+          return agentState
+        case 'last-write-wins':
+          if (agentMessage.timestamp && agentMessage.timestamp > Date.now() - 1000) {
+            return agentState
+          }
+          return clientState
+        case 'manual':
+          return agentState
+        default:
+          return agentState
+      }
+    },
+    [version, conflictResolution, onConflict]
+  )
+
+  const handleAgentUpdate = useCallback(
+    (message: AgentStateUpdateMessage) => {
+      if (!isMountedRef.current || message.agentName !== name) return
+
+      const now = Date.now()
+      if (throttle > 0 && now - throttleTimestampRef.current < throttle) return
+      throttleTimestampRef.current = now
+
+      try {
+        let newState = message.state as T
+        if (deserialize && typeof message.state === 'string') {
+          newState = deserialize(message.state)
+        }
+        if (transform) newState = transform(newState)
+
+        const hasOptimisticUpdate = optimisticStateRef.current !== null
+        const hasConflicts = message.metadata?.conflicts && message.metadata.conflicts.length > 0
+        const hasVersionConflict = message.version !== undefined && message.version < version
+
+        if (hasOptimisticUpdate || hasConflicts || hasVersionConflict) {
+          newState = resolveConflict(state, newState, message)
+          if (hasConflicts) {
+            const conflictError: CoAgentError = {
+              code: 'STATE_CONFLICT',
+              message: 'State conflict detected during sync',
+              details: message.metadata?.conflicts,
+              timestamp: Date.now(),
+            }
+            setError(conflictError)
+            onError?.(conflictError)
+          }
+        } else if (message.mergeStrategy === 'merge') {
+          newState = deepMerge(state, newState)
+        }
+
+        if (validate && !validate(newState)) {
+          throw new Error('Agent state validation failed')
+        }
+
+        setStateInternal(newState)
+        setVersion(message.version ?? version + 1)
+        optimisticStateRef.current = null
+        onChange?.(newState, previousStateRef.current)
+        previousStateRef.current = newState
+        onSync?.('agent-to-client', newState)
+      } catch (err) {
+        const updateError: CoAgentError = {
+          code: 'AGENT_UPDATE_ERROR',
+          message: err instanceof Error ? err.message : 'Failed to apply agent update',
+          details: err,
+          timestamp: Date.now(),
+        }
+        setError(updateError)
+        onError?.(updateError)
+      }
+    },
+    [
+      name,
+      state,
+      version,
+      throttle,
+      deserialize,
+      transform,
+      validate,
+      optimistic,
+      resolveConflict,
+      onChange,
+      onSync,
+      onError,
+    ]
+  )
+
+  const handleErrorMessage = useCallback(
+    (message: ErrorMessage) => {
+      if (!isMountedRef.current) return
+      const errorObj: CoAgentError = {
+        code: 'NETWORK_ERROR',
+        message: message.message,
+        details: message.details,
+        timestamp: message.timestamp ?? Date.now(),
+      }
+      setError(errorObj)
+      onError?.(errorObj)
+    },
+    [onError]
+  )
+
+  const handleConnect = useCallback(() => {
+    setIsConnected(true)
+    setError(null)
+    if (resyncOnReconnect) sendStateUpdate(state, false)
+    onReconnect?.()
+  }, [resyncOnReconnect, state, sendStateUpdate, onReconnect])
+
+  const handleDisconnect = useCallback(() => {
+    setIsConnected(false)
+  }, [])
+
+  const resync = useCallback(() => {
+    sendStateUpdate(state, false)
+  }, [state, sendStateUpdate])
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
+  useEffect(() => {
+    isMountedRef.current = true
+
+    const messageHandler = (data: unknown) => {
+      if (!data || typeof data !== 'object') return
+      const message = data as { type: string }
+      if (message.type === 'agentStateUpdate') {
+        handleAgentUpdate(message as AgentStateUpdateMessage)
+      } else if (message.type === 'error') {
+        handleErrorMessage(message as ErrorMessage)
+      }
+    }
+
+    transport.on('message', messageHandler)
+    transport.on('connect', handleConnect)
+    transport.on('disconnect', handleDisconnect)
+
+    return () => {
+      isMountedRef.current = false
+      transport.off('message', messageHandler)
+      transport.off('connect', handleConnect)
+      transport.off('disconnect', handleDisconnect)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    }
+  }, [transport, handleAgentUpdate, handleErrorMessage, handleConnect, handleDisconnect])
+
+  return { state, setState, isConnected, error, version, resync, clearError }
+}
+
+function deepMerge<T>(target: T, source: T): T {
+  if (Array.isArray(target) && Array.isArray(source)) return source as T
+  if (
+    typeof target === 'object' &&
+    target !== null &&
+    typeof source === 'object' &&
+    source !== null
+  ) {
+    const result = { ...target }
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        const targetValue = (target as Record<string, unknown>)[key]
+        const sourceValue = (source as Record<string, unknown>)[key]
+        if (
+          typeof targetValue === 'object' &&
+          targetValue !== null &&
+          typeof sourceValue === 'object' &&
+          sourceValue !== null &&
+          !Array.isArray(targetValue) &&
+          !Array.isArray(sourceValue)
+        ) {
+          ;(result as Record<string, unknown>)[key] = deepMerge(targetValue, sourceValue)
+        } else if (sourceValue !== undefined) {
+          ;(result as Record<string, unknown>)[key] = sourceValue
+        }
+      }
+    }
+    for (const key in target) {
+      if (
+        Object.prototype.hasOwnProperty.call(target, key) &&
+        !Object.prototype.hasOwnProperty.call(source, key)
+      ) {
+        ;(result as Record<string, unknown>)[key] = (target as Record<string, unknown>)[key]
+      }
+    }
+    return result
+  }
+  return source
+}
+function threeWayMerge<T>(base: T, client: T, agent: T): T {
+  // For arrays, prefer agent's version
+  if (Array.isArray(base) && Array.isArray(client) && Array.isArray(agent)) {
+    return agent as T
+  }
+
+  // For objects, perform field-by-field 3-way merge
+  if (
+    typeof base === 'object' &&
+    base !== null &&
+    typeof client === 'object' &&
+    client !== null &&
+    typeof agent === 'object' &&
+    agent !== null
+  ) {
+    const result = { ...client } as Record<string, unknown>
+    const baseObj = base as Record<string, unknown>
+    const clientObj = client as Record<string, unknown>
+    const agentObj = agent as Record<string, unknown>
+
+    // Get all keys from all three objects
+    const allKeys = new Set([
+      ...Object.keys(baseObj),
+      ...Object.keys(clientObj),
+      ...Object.keys(agentObj),
+    ])
+
+    for (const key of allKeys) {
+      const baseValue = baseObj[key]
+      const clientValue = clientObj[key]
+      const agentValue = agentObj[key]
+
+      // If all three are objects, recurse
+      if (
+        typeof baseValue === 'object' &&
+        baseValue !== null &&
+        typeof clientValue === 'object' &&
+        clientValue !== null &&
+        typeof agentValue === 'object' &&
+        agentValue !== null &&
+        !Array.isArray(baseValue) &&
+        !Array.isArray(clientValue) &&
+        !Array.isArray(agentValue)
+      ) {
+        result[key] = threeWayMerge(baseValue, clientValue, agentValue)
+      } else {
+        // Check who modified this field
+        const clientModified = clientValue !== baseValue
+        const agentModified = agentValue !== baseValue
+
+        if (clientModified && agentModified) {
+          // Both modified: prefer client's change
+          result[key] = clientValue
+        } else if (clientModified) {
+          // Only client modified: use client's value
+          result[key] = clientValue
+        } else if (agentModified) {
+          // Only agent modified: use agent's value
+          result[key] = agentValue
+        } else {
+          // Neither modified: use any value (they're all the same)
+          result[key] = clientValue
+        }
+      }
+    }
+
+    return result as T
+  }
+
+  // For primitives, prefer client value if different from base, otherwise agent value
+  if (client !== base) {
+    return client
+  }
+  return agent
+}

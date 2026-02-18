@@ -34,10 +34,16 @@ describe('MessageInspector', () => {
 
   describe('rendering', () => {
     it('should render message list', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      expect(screen.getByText(/createSurface/i)).toBeInTheDocument()
-      expect(screen.getByText(/pong/i)).toBeInTheDocument()
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      expect(messageList).toBeInTheDocument()
+
+      const items = container.querySelectorAll('[role="listitem"]')
+      expect(items.length).toBe(2)
+
+      expect(within(messageList as HTMLElement).getByText('createSurface')).toBeInTheDocument()
+      expect(within(messageList as HTMLElement).getByText('pong')).toBeInTheDocument()
     })
 
     it('should display message count', () => {
@@ -53,42 +59,55 @@ describe('MessageInspector', () => {
     })
 
     it('should display direction indicators', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      expect(screen.getByText(/sent/i)).toBeInTheDocument()
-      expect(screen.getByText(/received/i)).toBeInTheDocument()
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      expect(within(messageList as HTMLElement).getByText('sent')).toBeInTheDocument()
+      expect(within(messageList as HTMLElement).getByText('received')).toBeInTheDocument()
     })
   })
 
   describe('filtering', () => {
     it('should filter messages by type', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
       const typeFilter = screen.getByLabelText(/filter by type/i)
       fireEvent.change(typeFilter, { target: { value: 'createSurface' } })
 
-      expect(screen.getByText(/createSurface/i)).toBeInTheDocument()
-      expect(screen.queryByText(/pong/i)).not.toBeInTheDocument()
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      expect(within(messageList as HTMLElement).getByText('createSurface')).toBeInTheDocument()
+      expect(within(messageList as HTMLElement).queryByText('pong')).not.toBeInTheDocument()
+
+      // Should show 1 message after filtering
+      expect(screen.getByText(/1 message/i)).toBeInTheDocument()
     })
 
     it('should filter messages by direction', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
       const directionFilter = screen.getByLabelText(/filter by direction/i)
       fireEvent.change(directionFilter, { target: { value: 'sent' } })
 
-      expect(screen.getByText(/createSurface/i)).toBeInTheDocument()
-      expect(screen.queryByText(/pong/i)).not.toBeInTheDocument()
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      expect(within(messageList as HTMLElement).getByText('createSurface')).toBeInTheDocument()
+      expect(within(messageList as HTMLElement).queryByText('pong')).not.toBeInTheDocument()
+
+      // Should show 1 message after filtering
+      expect(screen.getByText(/1 message/i)).toBeInTheDocument()
     })
 
     it('should search messages by content', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
       const searchInput = screen.getByPlaceholderText(/search messages/i)
       fireEvent.change(searchInput, { target: { value: 'Test Surface' } })
 
-      expect(screen.getByText(/createSurface/i)).toBeInTheDocument()
-      expect(screen.queryByText(/pong/i)).not.toBeInTheDocument()
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      expect(within(messageList as HTMLElement).getByText('createSurface')).toBeInTheDocument()
+      expect(within(messageList as HTMLElement).queryByText('pong')).not.toBeInTheDocument()
+
+      // Should show 1 message after filtering
+      expect(screen.getByText(/1 message/i)).toBeInTheDocument()
     })
 
     it('should combine multiple filters', () => {
@@ -106,18 +125,20 @@ describe('MessageInspector', () => {
 
   describe('message details', () => {
     it('should show message details on click', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      const firstMessage = screen.getByText(/createSurface/i)
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
       fireEvent.click(firstMessage)
 
       expect(screen.getByText(/Test Surface/i)).toBeInTheDocument()
     })
 
     it('should display syntax-highlighted JSON', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      const firstMessage = screen.getByText(/createSurface/i)
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
       fireEvent.click(firstMessage)
 
       const codeBlock = screen.getByRole('code')
@@ -132,9 +153,10 @@ describe('MessageInspector', () => {
         }
       })
 
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      const firstMessage = screen.getByText(/createSurface/i)
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
       fireEvent.click(firstMessage)
 
       const copyButton = screen.getByRole('button', { name: /copy/i })
@@ -168,9 +190,10 @@ describe('MessageInspector', () => {
 
   describe('accessibility', () => {
     it('should be keyboard navigable', () => {
-      render(<MessageInspector messages={mockMessages} />)
+      const { container } = render(<MessageInspector messages={mockMessages} />)
 
-      const firstMessage = screen.getByText(/createSurface/i)
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
       firstMessage.focus()
 
       fireEvent.keyDown(firstMessage, { key: 'Enter' })
@@ -205,9 +228,47 @@ describe('MessageInspector', () => {
 
       const { container } = render(<MessageInspector messages={manyMessages} />)
 
-      // Should not render all 1000 items in DOM
+      // Should not render all 1000 items in DOM when virtualized
       const renderedItems = container.querySelectorAll('[role="listitem"]')
       expect(renderedItems.length).toBeLessThan(100)
+    })
+
+    it('should not virtualize small message lists', () => {
+      const fewMessages = Array.from({ length: 10 }, (_, i) => ({
+        id: `msg_${i}`,
+        timestamp: Date.now() - i * 1000,
+        direction: 'sent' as const,
+        messageType: 'ping',
+        message: { type: 'ping' as const }
+      }))
+
+      const { container } = render(<MessageInspector messages={fewMessages} />)
+
+      // Should render all items when list is small
+      const renderedItems = container.querySelectorAll('[role="listitem"]')
+      expect(renderedItems.length).toBe(10)
+    })
+
+    it('should handle rapid filter changes efficiently', () => {
+      const manyMessages = Array.from({ length: 1000 }, (_, i) => ({
+        id: `msg_${i}`,
+        timestamp: Date.now() - i * 1000,
+        direction: i % 2 === 0 ? 'sent' as const : 'received' as const,
+        messageType: 'ping',
+        message: { type: 'ping' as const }
+      }))
+
+      render(<MessageInspector messages={manyMessages} />)
+
+      const directionFilter = screen.getByLabelText(/filter by direction/i)
+
+      // Rapid filter changes should not cause memory issues
+      fireEvent.change(directionFilter, { target: { value: 'sent' } })
+      fireEvent.change(directionFilter, { target: { value: 'received' } })
+      fireEvent.change(directionFilter, { target: { value: '' } })
+
+      // Should still be responsive
+      expect(screen.getByText(/1000 messages/i)).toBeInTheDocument()
     })
   })
 })

@@ -56,3 +56,38 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock URL.createObjectURL and URL.revokeObjectURL for jsdom
 global.URL.createObjectURL = vi.fn(() => 'mock-blob-url')
 global.URL.revokeObjectURL = vi.fn()
+
+// Mock ResizeObserver for virtualization testing
+global.ResizeObserver = class ResizeObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+
+  constructor(callback: ResizeObserverCallback) {
+    // Immediately trigger callback with mock data for tests
+    setTimeout(() => {
+      callback(
+        [
+          {
+            target: document.createElement('div'),
+            contentRect: {
+              x: 0,
+              y: 0,
+              width: 400,
+              height: 600,
+              top: 0,
+              right: 400,
+              bottom: 600,
+              left: 0,
+              toJSON: () => ({})
+            },
+            borderBoxSize: [] as any,
+            contentBoxSize: [] as any,
+            devicePixelContentBoxSize: [] as any
+          }
+        ] as ResizeObserverEntry[],
+        this
+      )
+    }, 0)
+  }
+}

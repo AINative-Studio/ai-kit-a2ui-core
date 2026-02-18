@@ -75,6 +75,7 @@ export function useCoAgent<T = Record<string, unknown>>(
     validate,
     transform,
     middleware,
+    serialize,
     deserialize,
     onChange,
     onSync,
@@ -95,16 +96,18 @@ export function useCoAgent<T = Record<string, unknown>>(
   const optimisticStateRef = useRef<T | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const throttleTimestampRef = useRef<number>(0)
+  const lastSyncedStateRef = useRef<T>(initialState)
 
   const sendStateUpdate = useCallback(async (stateToSend: T, isOptimistic = false) => {
     if (!isMountedRef.current) return
 
     const sendWithRetry = async (attempts = 0): Promise<void> => {
       try {
+        const serializedState = serialize ? serialize(stateToSend) : stateToSend
         const message: ClientStateUpdateMessage = {
           type: 'clientStateUpdate',
           agentName: name,
-          state: stateToSend as Record<string, unknown>,
+          state: serializedState as Record<string, unknown>,
           version: version + 1,
           metadata: { optimistic: isOptimistic, source: 'useCoAgent' },
           timestamp: Date.now()
@@ -133,7 +136,7 @@ export function useCoAgent<T = Record<string, unknown>>(
       }
     }
     await sendWithRetry()
-  }, [name, version, transport, onSync, onError, retryOnError, maxRetries, optimistic])
+  }, [name, version, transport, onSync, onError, retryOnError, maxRetries, optimistic, serialize])
 
   const setState = useCallback((newState: T | ((prevState: T) => T)) => {
     if (!isMountedRef.current) return
@@ -226,7 +229,10 @@ export function useCoAgent<T = Record<string, unknown>>(
       const hasConflicts = message.metadata?.conflicts && message.metadata.conflicts.length > 0
       const hasVersionConflict = message.version !== undefined && message.version < version
 
-      if (hasOptimisticUpdate || hasConflicts || hasVersionConflict) {
+      const needsConflictResolution = hasOptimisticUpdate || hasConflicts || hasVersionConflict ||
+        conflictResolution === 'client-wins' || conflictResolution === 'agent-wins'
+
+      if (needsConflictResolution) {
         newState = resolveConflict(state, newState, message)
         if (hasConflicts) {
           const conflictError: CoAgentError = {
@@ -239,7 +245,7 @@ export function useCoAgent<T = Record<string, unknown>>(
           onError?.(conflictError)
         }
       } else if (message.mergeStrategy === 'merge') {
-        newState = deepMerge(state, newState)
+        newState = threeWayMerge(lastSyncedStateRef.current, state, newState)
       }
 
       if (validate && !validate(newState)) {
@@ -249,6 +255,7 @@ export function useCoAgent<T = Record<string, unknown>>(
       setStateInternal(newState)
       setVersion(message.version ?? version + 1)
       optimisticStateRef.current = null
+      lastSyncedStateRef.current = newState
       onChange?.(newState, previousStateRef.current)
       previousStateRef.current = newState
       onSync?.('agent-to-client', newState)
@@ -263,7 +270,7 @@ export function useCoAgent<T = Record<string, unknown>>(
       onError?.(updateError)
     }
   }, [name, state, version, throttle, deserialize, transform, validate, optimistic,
-      resolveConflict, onChange, onSync, onError])
+      resolveConflict, onChange, onSync, onError, conflictResolution])
 
   const handleErrorMessage = useCallback((message: ErrorMessage) => {
     if (!isMountedRef.current) return
@@ -352,4 +359,61 @@ function deepMerge<T>(target: T, source: T): T {
     return result
   }
   return source
+}
+
+function threeWayMerge<T>(base: T, client: T, agent: T): T {
+  if (Array.isArray(base) && Array.isArray(client) && Array.isArray(agent)) {
+    return agent as T
+  }
+
+  if (typeof base === 'object' && base !== null &&
+      typeof client === 'object' && client !== null &&
+      typeof agent === 'object' && agent !== null) {
+    const result = { ...client } as Record<string, unknown>
+    const baseObj = base as Record<string, unknown>
+    const clientObj = client as Record<string, unknown>
+    const agentObj = agent as Record<string, unknown>
+
+    const allKeys = new Set([
+      ...Object.keys(baseObj),
+      ...Object.keys(clientObj),
+      ...Object.keys(agentObj)
+    ])
+
+    for (const key of allKeys) {
+      const baseValue = baseObj[key]
+      const clientValue = clientObj[key]
+      const agentValue = agentObj[key]
+
+      if (typeof baseValue === 'object' && baseValue !== null &&
+          typeof clientValue === 'object' && clientValue !== null &&
+          typeof agentValue === 'object' && agentValue !== null &&
+          !Array.isArray(baseValue) && !Array.isArray(clientValue) && !Array.isArray(agentValue)) {
+        result[key] = threeWayMerge(baseValue, clientValue, agentValue)
+      } else {
+        const clientModified = clientValue !== baseValue
+        const agentModified = agentValue !== baseValue
+        const agentHasKey = Object.prototype.hasOwnProperty.call(agentObj, key)
+
+        if (!agentHasKey && clientValue !== undefined) {
+          result[key] = clientValue
+        } else if (clientModified && agentModified) {
+          result[key] = clientValue
+        } else if (clientModified) {
+          result[key] = clientValue
+        } else if (agentModified) {
+          result[key] = agentValue
+        } else {
+          result[key] = clientValue
+        }
+      }
+    }
+
+    return result as T
+  }
+
+  if (client !== base) {
+    return client
+  }
+  return agent
 }

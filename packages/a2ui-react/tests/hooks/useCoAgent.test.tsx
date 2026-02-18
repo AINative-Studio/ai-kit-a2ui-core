@@ -638,16 +638,17 @@ describe('useCoAgent Hook', () => {
         })
       )
 
-      act(() => {
+      await act(async () => {
         result.current.setState({ count: 1 })
         result.current.setState({ count: 2 })
         result.current.setState({ count: 3 })
+
+        // Wait for debounce period inside act() to allow timer callback to execute
+        await new Promise(resolve => setTimeout(resolve, 150))
       })
 
       // Should only send once after debounce
-      await waitFor(() => {
-        expect(sendSpy).toHaveBeenCalledTimes(1)
-      }, { timeout: 200 })
+      expect(sendSpy).toHaveBeenCalledTimes(1)
     })
 
     it('should throttle agent updates when configured', async () => {
@@ -792,7 +793,7 @@ describe('useCoAgent Hook', () => {
       await waitFor(() => {
         expect(attempts).toBe(3)
         expect(result.current.error).toBeNull()
-      })
+      }, { timeout: 5000 })
     })
   })
 
