@@ -1,0 +1,117 @@
+/* Backdrop */
+.a2ui-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Sidebar */
+.a2ui-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  background: var(--a2ui-bg, #ffffff);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease-out;
+}
+
+/* Position variants */
+.a2ui-sidebar.left {
+  left: 0;
+  animation: slideInLeft 0.3s ease-out;
+}
+
+.a2ui-sidebar.right {
+  right: 0;
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Mode variants */
+.a2ui-sidebar.overlay {
+  /* Overlays content */
+}
+
+.a2ui-sidebar.push {
+  /* Push mode would require wrapper component to shift main content */
+  /* This is a simplified version */
+}
+
+/* Header */
+.a2ui-sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--a2ui-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+/* Content */
+.a2ui-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Footer */
+.a2ui-sidebar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--a2ui-border, #e5e7eb);
+  flex-shrink: 0;
+}
+
+/* Dark theme */
+[data-theme='dark'] .a2ui-sidebar {
+  --a2ui-bg: #1f2937;
+  --a2ui-border: #374151;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .a2ui-sidebar-backdrop,
+  .a2ui-sidebar {
+    animation: none;
+  }
+
+  .a2ui-sidebar {
+    transition: none;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .a2ui-sidebar {
+    width: 85vw !important;
+    max-width: 320px;
+  }
+}

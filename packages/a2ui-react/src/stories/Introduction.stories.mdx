@@ -1,0 +1,71 @@
+import { Meta } from '@storybook/blocks'
+
+<Meta title="Introduction" />
+
+# A2UI React Components
+
+Welcome to the A2UI React component library! This Storybook showcases React bindings and pre-built components for the A2UI protocol.
+
+## What is A2UI?
+
+A2UI (Agent-to-UI) is a framework-agnostic protocol that enables AI agents to dynamically generate rich user interfaces using declarative JSON.
+
+## Package Features
+
+### Headless Hooks
+
+- **useCoAgent** - Bidirectional state synchronization with AI agents
+- **useA2UIAgent** - Full A2UI protocol support with surface management
+- **useHumanInTheLoop** - Approval workflows for critical actions
+
+### Pre-built Components
+
+- **A2UIChat** - Full-featured chat interface with message history, typing indicators, and error handling
+- **A2UIPopup** - Configurable popup/modal with positioning and animations
+- **A2UISidebar** - Responsive sidebar with overlay and push modes
+
+## Design Principles
+
+### Accessibility First
+All components meet WCAG 2.1 AA standards with:
+- Keyboard navigation support
+- Screen reader compatibility
+- Proper ARIA attributes
+- Color contrast compliance
+
+### Type Safety
+Built with TypeScript strict mode - zero 'any' types, 100% type coverage.
+
+### Zero Global CSS
+Components use CSS modules to prevent style pollution.
+
+### Bundle Size
+- Headless hooks: <5KB gzipped
+- Full package: <60KB gzipped
+
+## Getting Started
+
+```bash
+npm install @ainative/a2ui-react
+```
+
+```tsx
+import { useCoAgent } from '@ainative/a2ui-react/headless'
+
+function App() {
+  const agent = useCoAgent({ url: 'wss://api.example.com' }, { count: 0 })
+  
+  return (
+    <div>
+      <p>Count: {agent.state.count}</p>
+      <button onClick={() => agent.setState({ count: agent.state.count + 1 })}>
+        Increment
+      </button>
+    </div>
+  )
+}
+```
+
+## Browse Components
+
+Use the sidebar to explore components and their variants.

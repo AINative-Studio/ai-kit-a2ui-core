@@ -1,0 +1,48 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.nav {
+  display: flex;
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.nav button {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #858585;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav button:hover {
+  color: #d4d4d4;
+}
+
+.nav button.active {
+  color: #ffffff;
+  border-bottom-color: #007acc;
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 16px;
+  color: #858585;
+}

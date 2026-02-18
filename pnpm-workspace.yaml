@@ -1,0 +1,10 @@
+# pnpm Workspace Configuration
+# Defines package locations for monorepo management
+# See: https://pnpm.io/pnpm-workspace_yaml
+
+packages:
+  # Framework-specific packages (React, Vue, Angular)
+  - 'packages/*'
+
+  # Example applications demonstrating package usage
+  - 'examples/*'

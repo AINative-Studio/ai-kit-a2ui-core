@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2UI Inspector DevTools</title>
+</head>
+<body>
+  <script type="module">
+    // Create the A2UI Inspector panel
+    chrome.devtools.panels.create(
+      'A2UI',
+      'icons/icon-16.png',
+      'panel.html',
+      (panel) => {
+        // Panel created
+      }
+    );
+  </script>
+</body>
+</html>

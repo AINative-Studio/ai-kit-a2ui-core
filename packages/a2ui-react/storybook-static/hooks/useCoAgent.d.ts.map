@@ -1,0 +1,1 @@
+{"version":3,"file":"useCoAgent.d.ts","sourceRoot":"","sources":["../../src/hooks/useCoAgent.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EACV,cAAc,EACd,WAAW,EAGZ,MAAM,kBAAkB,CAAA;AAOzB;;;;;;;;;;;;;;;;;;GAkBG;AACH,wBAAgB,UAAU,CAAC,CAAC,GAAG,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,EACpD,IAAI,EAAE,MAAM,EACZ,YAAY,EAAE,CAAC,EACf,OAAO,EAAE,cAAc,CAAC,CAAC,CAAC,GACzB,WAAW,CAAC,CAAC,CAAC,CAsQhB"}

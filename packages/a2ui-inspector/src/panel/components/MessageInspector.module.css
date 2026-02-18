@@ -1,0 +1,176 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #252526;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.search {
+  flex: 1;
+  padding: 6px 12px;
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 13px;
+}
+
+.search:focus {
+  outline: 1px solid #007acc;
+}
+
+.filter {
+  padding: 6px 12px;
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 13px;
+}
+
+.button {
+  padding: 6px 12px;
+  background: #0e639c;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #1177bb;
+}
+
+.count {
+  margin-left: auto;
+  font-size: 13px;
+  color: #858585;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.list {
+  width: 400px;
+  overflow-y: auto;
+  border-right: 1px solid #3c3c3c;
+}
+
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #2d2d30;
+}
+
+.message:hover {
+  background: #2a2d2e;
+}
+
+.message:focus {
+  outline: 1px solid #007acc;
+  background: #2a2d2e;
+}
+
+.message.selected {
+  background: #094771;
+}
+
+.direction {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.direction.sent {
+  background: #1a472a;
+  color: #4ec9b0;
+}
+
+.direction.received {
+  background: #4e2a4e;
+  color: #c586c0;
+}
+
+.type {
+  flex: 1;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.time {
+  font-size: 11px;
+  color: #858585;
+}
+
+.details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detailsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.detailsHeader h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.json {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #858585;
+  text-align: center;
+}
+
+.hint {
+  font-size: 13px;
+  margin-top: 8px;
+}

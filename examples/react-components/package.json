@@ -1,0 +1,38 @@
+{
+  "name": "a2ui-react-components-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Example: Pre-built React components with A2UI Core",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:a11y": "vitest run --grep \"accessibility\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ainative/ai-kit-a2ui-core": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "axe-core": "^4.10.2",
+    "happy-dom": "^15.11.7",
+    "jest-axe": "^9.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
+  }
+}

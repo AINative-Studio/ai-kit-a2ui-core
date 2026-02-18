@@ -1,0 +1,351 @@
+# A2UI Inspector - Chrome DevTools Extension
+
+Chrome DevTools extension for debugging and inspecting A2UI protocol communications in real-time.
+
+## Features
+
+### 🔍 Protocol Message Inspector
+- Real-time capture of all A2UI messages (sent & received)
+- Advanced filtering by message type, direction, and content
+- JSON syntax highlighting with copy-to-clipboard
+- Export messages for analysis
+- Zero performance impact on page execution
+
+### 🌳 State Tree Viewer ✅
+- Live visualization of application state in hierarchical tree structure
+- Expandable/collapsible node navigation with keyboard support (Arrow keys)
+- Diff highlighting for state changes with operation indicators (add/replace/remove)
+- Time travel debugging with timeline slider and step-through controls
+- Copy state to clipboard (entire tree, selected node, or node path)
+- Advanced search and filtering by key names, values, or value types (string, number, boolean, object, array)
+- Virtual scrolling for optimal performance with large state trees (100+ nodes)
+- Change badges showing number of modifications per node
+- Auto-expand search matches for easier navigation
+- WCAG 2.1 AA accessibility compliant with full keyboard navigation
+
+### ⚡ Action Tracer
+- Timeline visualization of action executions
+- Duration metrics and status indicators (completed, failed, pending)
+- Parameter and result logging
+- Error detail displays with full stack traces
+- Filter actions by status (success/error/pending)
+- Search actions by type
+- Export action traces to JSON
+- Real-time updates as actions execute
+
+### 📊 Performance Profiler
+- Message latency measurement with percentile metrics (P50, P95, P99)
+- Component render time tracking with slow render warnings
+- WebSocket connection health monitoring with uptime percentage
+- Memory usage trending with high usage alerts
+- Real-time performance charts and visualizations
+- Export performance data to JSON for offline analysis
+
+### 🌐 Network Inspector
+- Real-time WebSocket connection status with visual indicators
+- Connection health score (0-100) based on uptime and stability
+- Reconnection attempts timeline and tracking
+- Message queue visualization with retry counts
+- Bandwidth usage monitoring (sent/received)
+- Interactive bandwidth charts with historical data
+- Connection uptime and downtime tracking
+- High retry message highlighting
+- Export network metrics to JSON
+
+## Installation
+
+### From Source (Development)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/AINative-Studio/ai-kit-a2ui-core.git
+   cd ai-kit-a2ui-core/packages/a2ui-inspector
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Build the extension:**
+   ```bash
+   npm run build
+   ```
+
+4. **Load in Chrome:**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode" (toggle in top right)
+   - Click "Load unpacked"
+   - Select the `dist/` directory from the build output
+
+### From Chrome Web Store (Coming Soon)
+The extension will be available on the Chrome Web Store after initial release.
+
+## Usage
+
+1. **Open DevTools** in any page using A2UI protocol (F12 or Right-click → Inspect)
+
+2. **Navigate to A2UI tab** in DevTools panel
+
+3. **Select a view:**
+   - **Messages**: View all protocol messages in real-time
+   - **State Tree**: Inspect application state changes
+   - **Actions**: Trace action executions
+   - **Performance**: Monitor performance metrics
+   - **Network**: Check connection health
+
+4. **Filter and search:**
+   - Use the search box to filter messages by content
+   - Select message type from dropdown
+   - Filter by direction (sent/received)
+
+5. **Inspect details:**
+   - Click any message to view full JSON payload
+   - Copy messages to clipboard for further analysis
+   - Export all messages to JSON file
+
+### Using the Action Tracer
+
+The Action Tracer provides real-time monitoring of action executions:
+
+1. **View timeline:**
+   - Actions appear in reverse chronological order (newest first)
+   - Each action shows type, status, duration, and timestamp
+
+2. **Filter by status:**
+   - **Success** - Completed actions
+   - **Failed** - Actions that threw errors
+   - **Pending** - Actions still in progress
+
+3. **Search actions:**
+   - Use the search box to filter by action type
+   - Case-insensitive search
+
+4. **Inspect details:**
+   - Click any action to view full details
+   - See action parameters, results, and error messages
+   - Copy action data to clipboard for analysis
+
+5. **Export traces:**
+   - Export all action traces to JSON file for further analysis
+
+### Using the Network Inspector
+
+The Network Inspector provides real-time monitoring of WebSocket connections:
+
+1. **Connection status:**
+   - Visual indicator shows connected (green), disconnected (red), or reconnecting (yellow)
+   - Connection health score displayed (0-100)
+   - Uptime tracking for active connections
+
+2. **Monitor metrics:**
+   - **Bandwidth**: View sent/received data in real-time
+   - **Message Queue**: See queued messages waiting to be sent
+   - **Reconnection Attempts**: Track automatic reconnection tries
+   - **Charts**: Interactive bandwidth usage visualization
+
+3. **Timeline tracking:**
+   - Last connected timestamp
+   - Last disconnected timestamp (when applicable)
+   - Reconnection attempt history
+
+4. **Message queue:**
+   - Click queued messages to view full payload
+   - High-retry messages highlighted in red
+   - Retry count displayed for each message
+
+5. **Refresh connection:**
+   - Use the Refresh button to request latest network status
+   - Useful after network changes or debugging
+
+### Using the Performance Profiler
+
+The Performance Profiler provides comprehensive performance monitoring:
+
+1. **Message Latency Metrics:**
+   - View average, minimum, and maximum message round-trip times
+   - Percentile metrics (P50, P95, P99) for latency distribution
+   - Visual chart showing latency trends over time
+   - Warnings for messages exceeding 1000ms
+
+2. **Component Render Time:**
+   - Track render duration for each component
+   - Component-level breakdown with average render times
+   - Highlight slow renders (>16ms - exceeding 60fps target)
+   - Visual chart showing render performance
+
+3. **Memory Usage:**
+   - Current, peak, and average memory consumption in MB
+   - Memory trend indicator (increasing/decreasing/stable)
+   - High memory usage alerts (>100MB)
+   - Visual chart showing memory usage over time
+
+4. **Connection Health:**
+   - Current WebSocket connection status
+   - Connection uptime percentage
+   - Reconnection attempt count
+   - Average connection duration
+   - Visual timeline showing connection events
+
+5. **Export Performance Data:**
+   - Export all performance metrics to JSON
+   - Includes timestamps for offline analysis
+   - Supports integration with external monitoring tools
+
+## Development
+
+### Project Structure
+
+```
+packages/a2ui-inspector/
+├── extension/              # Static extension files
+│   ├── devtools.html       # DevTools entry point
+│   ├── panel.html          # Panel HTML
+│   └── icons/              # Extension icons
+├── src/
+│   ├── background/         # Background service worker
+│   │   └── index.ts
+│   ├── content/            # Content scripts
+│   │   ├── index.ts        # Content script bridge
+│   │   └── injected.ts     # Page context injection
+│   ├── panel/              # DevTools panel UI
+│   │   ├── components/     # React components
+│   │   ├── hooks/          # Custom hooks
+│   │   ├── App.tsx         # Main app component
+│   │   └── index.tsx       # Panel entry point
+│   └── shared/             # Shared utilities
+│       ├── types/          # TypeScript types
+│       └── utils/          # Utility functions
+└── tests/                  # Test files
+    ├── unit/               # Unit tests
+    └── integration/        # Integration tests
+```
+
+### Commands
+
+```bash
+# Development build with watch mode
+npm run dev
+
+# Production build
+npm run build
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Format code
+npm run format
+
+# Package extension for distribution
+npm run package
+```
+
+### Testing
+
+The extension follows TDD principles with 85%+ test coverage:
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Architecture
+
+**Message Flow:**
+1. **Injected Script** → Intercepts WebSocket and fetch API calls in page context
+2. **Content Script** → Bridges messages between page and background
+3. **Background Worker** → Routes messages to DevTools panel
+4. **DevTools Panel** → Displays and processes messages in React UI
+
+**Key Components:**
+- `MessageCapture`: Captures and manages A2UI messages
+- `StateTree`: Manages hierarchical state representation with change tracking
+- `StateTreeViewer`: React component for interactive state tree visualization
+- `PerformanceTracker`: Tracks performance metrics (latency, render time, memory, connection)
+- `MessageInspector`: React component for message visualization
+- `ActionTracer`: React component for action execution tracing
+- `PerformanceProfiler`: React component for performance metrics visualization
+
+## Browser Compatibility
+
+- Chrome 88+ (Manifest V3 required)
+- Edge 88+ (Chromium-based)
+
+## Contributing
+
+See [CONTRIBUTING.md](../../docs/CONTRIBUTING.md) for contribution guidelines.
+
+## Testing Requirements
+
+- **TDD Required**: Tests must be written before implementation
+- **Coverage**: 85%+ across all modules
+- **Type Safety**: Zero `any` types, 100% type safety
+- **Accessibility**: WCAG 2.1 AA compliance
+
+## Performance
+
+The extension is designed with zero performance impact:
+- Asynchronous message capture
+- Efficient memory management (configurable limits)
+- Virtual scrolling for long lists
+- No blocking operations on page thread
+
+## Security
+
+- Content Security Policy (CSP) compliant
+- No eval() or unsafe operations
+- Isolated page context injection
+- Secure message passing between components
+
+## License
+
+MIT License - see [LICENSE](../../LICENSE) for details
+
+## Support
+
+- **Issues**: https://github.com/AINative-Studio/ai-kit-a2ui-core/issues
+- **Documentation**: https://ainative.studio/docs/a2ui-inspector
+- **Discord**: https://discord.gg/ainative
+
+## Roadmap
+
+- [x] Protocol Message Inspector
+- [x] Message filtering and search
+- [x] JSON syntax highlighting
+- [x] State Tree Viewer (Issue #90 - Part 1/4) ✅
+- [x] Action Tracer (Issue #90 - Part 2/4)
+- [x] Performance Profiler (Issue #90 - Part 3/4)
+- [x] Network Inspector (Issue #90 - Part 4/4)
+- [ ] Chrome Web Store publication
+- [ ] Firefox extension support
+- [ ] Safari extension support
+
+## Credits
+
+Built with:
+- React 18
+- TypeScript 5
+- Vite
+- Vitest
+- Chrome Extensions API (Manifest V3)
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: 2026-02-17
+**Status**: Beta - Protocol Message Inspector complete, additional views in development
