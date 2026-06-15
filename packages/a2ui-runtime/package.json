@@ -1,14 +1,35 @@
 {
   "name": "@ainative/a2ui-runtime",
-  "version": "0.1.0",
-  "description": "A2UI Runtime adapters for LLM providers",
-  "main": "./dist/index.js",
+  "version": "0.2.0",
+  "description": "A2UI Runtime with LLM provider abstraction - supports OpenAI, Anthropic, and custom providers",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "import": "./dist/providers/index.js",
+      "require": "./dist/providers/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "build": "tsup"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "zod": "^3.22.0"
@@ -25,5 +46,16 @@
   "peerDependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
     "openai": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "openai": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
