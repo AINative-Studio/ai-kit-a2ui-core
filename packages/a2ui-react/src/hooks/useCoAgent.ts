@@ -332,35 +332,6 @@ export function useCoAgent<T = Record<string, unknown>>(
   return { state, setState, isConnected, error, version, resync, clearError }
 }
 
-function deepMerge<T>(target: T, source: T): T {
-  if (Array.isArray(target) && Array.isArray(source)) return source as T
-  if (typeof target === 'object' && target !== null &&
-      typeof source === 'object' && source !== null) {
-    const result = { ...target }
-    for (const key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        const targetValue = (target as Record<string, unknown>)[key]
-        const sourceValue = (source as Record<string, unknown>)[key]
-        if (typeof targetValue === 'object' && targetValue !== null &&
-            typeof sourceValue === 'object' && sourceValue !== null &&
-            !Array.isArray(targetValue) && !Array.isArray(sourceValue)) {
-          (result as Record<string, unknown>)[key] = deepMerge(targetValue, sourceValue)
-        } else if (sourceValue !== undefined) {
-          (result as Record<string, unknown>)[key] = sourceValue
-        }
-      }
-    }
-    for (const key in target) {
-      if (Object.prototype.hasOwnProperty.call(target, key) &&
-          !Object.prototype.hasOwnProperty.call(source, key)) {
-        (result as Record<string, unknown>)[key] = (target as Record<string, unknown>)[key]
-      }
-    }
-    return result
-  }
-  return source
-}
-
 function threeWayMerge<T>(base: T, client: T, agent: T): T {
   if (Array.isArray(base) && Array.isArray(client) && Array.isArray(agent)) {
     return agent as T
