@@ -37,6 +37,11 @@ class MockTransport {
   }
 
   lastSentMessage: unknown = null
+  connectedOverride: boolean | undefined = undefined
+
+  isConnected(): boolean | undefined {
+    return this.connectedOverride
+  }
 
   getListenerCount(event: string): number {
     return this.listeners.get(event)?.size ?? 0
@@ -106,6 +111,42 @@ describe('useCoAgent Hook', () => {
       // TypeScript should enforce type safety
       expect(result.current.state.userId).toBe('123')
       expect(result.current.state.preferences.theme).toBe('dark')
+    })
+
+    it('should use the transport-reported connection state when available', () => {
+      mockTransport.connectedOverride = false
+
+      const { result } = renderHook(() =>
+        useCoAgent<{ count: number }>('test-agent', { count: 0 }, { transport: mockTransport })
+      )
+
+      expect(result.current.isConnected).toBe(false)
+    })
+
+    it('should accept a functional updater in setState', () => {
+      const { result } = renderHook(() =>
+        useCoAgent<{ count: number }>('test-agent', { count: 0 }, { transport: mockTransport })
+      )
+
+      act(() => {
+        result.current.setState((prev) => ({ count: prev.count + 1 }))
+      })
+
+      expect(result.current.state.count).toBe(1)
+    })
+
+    it('should call resync to resend the current state', () => {
+      const { result } = renderHook(() =>
+        useCoAgent<{ count: number }>('test-agent', { count: 5 }, { transport: mockTransport })
+      )
+
+      act(() => {
+        result.current.resync()
+      })
+
+      const sent = mockTransport.lastSentMessage as ClientStateUpdateMessage
+      expect(sent.type).toBe('clientStateUpdate')
+      expect(sent.state).toEqual({ count: 5 })
     })
   })
 
@@ -199,6 +240,220 @@ describe('useCoAgent Hook', () => {
         expect(result.current.state.settings.theme).toBe('light')
       })
     })
+
+    it('should deep-merge nested objects when client and agent both diverge from the base', async () => {
+      type ComplexState = {
+        user: { name: string; age: number }
+        settings: { theme: string }
+      }
+
+      const { result } = renderHook(() =>
+        useCoAgent<ComplexState>('test-agent', {
+          user: { name: 'Alice', age: 30 },
+          settings: { theme: 'light' }
+        }, { transport: mockTransport })
+      )
+
+      // Establish a synced base state.
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { user: { name: 'Alice', age: 30 }, settings: { theme: 'light' } },
+          version: 1,
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.version).toBe(1)
+      })
+
+      // Client diverges from the base locally.
+      act(() => {
+        result.current.setState({
+          user: { name: 'Alice', age: 31 },
+          settings: { theme: 'light' },
+        })
+      })
+
+      // Agent update diverges from the base differently, in a nested key
+      // the client didn't touch — exercises the recursive object-merge
+      // branch and the "clientModified only" / "agentModified only" paths.
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { user: { name: 'Alice', age: 31 }, settings: { theme: 'dark' } },
+          mergeStrategy: 'merge',
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state.settings.theme).toBe('dark')
+        expect(result.current.state.user.age).toBe(31)
+      })
+    })
+
+    it('should resolve concurrent array field changes via client/agent-modified comparison', async () => {
+      // Nested array fields are excluded from threeWayMerge's recursive
+      // object-merge branch (it explicitly skips arrays), so they fall
+      // through to the generic clientModified/agentModified reference
+      // comparison instead of being deep-merged or replaced wholesale.
+      // When both sides changed the reference, client wins.
+      type ListState = { items: string[] }
+
+      const { result } = renderHook(() =>
+        useCoAgent<ListState>('test-agent', { items: ['a'] }, { transport: mockTransport })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { items: ['a'] },
+          version: 1,
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.version).toBe(1)
+      })
+
+      act(() => {
+        result.current.setState({ items: ['a', 'b'] })
+      })
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { items: ['a', 'c', 'd'] },
+          mergeStrategy: 'merge',
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state.items).toEqual(['a', 'b'])
+      })
+    })
+
+    it('should take the client value when merging primitive state that only the client changed', async () => {
+      const { result } = renderHook(() =>
+        useCoAgent<number>('counter', 0, { transport: mockTransport })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'counter',
+          state: 0,
+          version: 1,
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.version).toBe(1)
+      })
+
+      act(() => {
+        result.current.setState(5)
+      })
+
+      // Agent's value still matches the old base (0) — only the client
+      // changed — so threeWayMerge's primitive fallback should keep client.
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'counter',
+          state: 0,
+          mergeStrategy: 'merge',
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state).toBe(5)
+      })
+    })
+
+    it('should take the agent value when merging primitive state that the agent changed', async () => {
+      const { result } = renderHook(() =>
+        useCoAgent<number>('counter', 0, { transport: mockTransport })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'counter',
+          state: 0,
+          version: 1,
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.version).toBe(1)
+      })
+
+      // Client never called setState — base and client are both still 0 —
+      // so threeWayMerge's primitive fallback should take the agent's value.
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'counter',
+          state: 42,
+          mergeStrategy: 'merge',
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state).toBe(42)
+      })
+    })
+
+    it('should take the agent array when only the agent changed it', async () => {
+      type ListState = { items: string[] }
+
+      const { result } = renderHook(() =>
+        useCoAgent<ListState>('test-agent', { items: ['a'] }, { transport: mockTransport })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { items: ['a'] },
+          version: 1,
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.version).toBe(1)
+      })
+
+      // Client does not call setState here — only the agent's array differs
+      // from the base, exercising the "agentModified only" branch.
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { items: ['a', 'c'] },
+          mergeStrategy: 'merge',
+          timestamp: Date.now(),
+        } as AgentStateUpdateMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state.items).toEqual(['a', 'c'])
+      })
+    })
   })
 
   describe('Optimistic Updates', () => {
@@ -279,6 +534,90 @@ describe('useCoAgent Hook', () => {
   })
 
   describe('Conflict Resolution', () => {
+    it('should keep the client value under last-write-wins when the agent update is stale', async () => {
+      const { result } = renderHook(() =>
+        useCoAgent('test-agent', { count: 0 }, {
+          transport: mockTransport,
+          conflictResolution: 'last-write-wins',
+          optimistic: true,
+        })
+      )
+
+      act(() => {
+        result.current.setState({ count: 5 })
+      })
+
+      // A stale timestamp (older than 1s ago) with a version conflict
+      // triggers resolveConflict's last-write-wins branch that keeps the
+      // client's value rather than the agent's.
+      const staleUpdate: AgentStateUpdateMessage = {
+        type: 'agentStateUpdate',
+        agentName: 'test-agent',
+        state: { count: 999 },
+        version: 0,
+        timestamp: Date.now() - 5000,
+      }
+
+      act(() => {
+        mockTransport.emit('message', staleUpdate)
+      })
+
+      await waitFor(() => {
+        expect(result.current.state.count).toBe(5)
+      })
+    })
+
+    it('should deserialize a string agent state before applying it', async () => {
+      const deserialize = (raw: string) => JSON.parse(raw) as { count: number }
+
+      const { result } = renderHook(() =>
+        useCoAgent<{ count: number }>('test-agent', { count: 0 }, {
+          transport: mockTransport,
+          deserialize,
+        })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: JSON.stringify({ count: 7 }),
+          timestamp: Date.now(),
+        })
+      })
+
+      await waitFor(() => {
+        expect(result.current.state.count).toBe(7)
+      })
+    })
+
+    it('should set an error when an incoming agent update fails validation', async () => {
+      const onError = vi.fn()
+
+      const { result } = renderHook(() =>
+        useCoAgent('test-agent', { count: 0 }, {
+          transport: mockTransport,
+          onError,
+          validate: (s: { count: number }) => s.count >= 0,
+        })
+      )
+
+      act(() => {
+        mockTransport.emit('message', {
+          type: 'agentStateUpdate',
+          agentName: 'test-agent',
+          state: { count: -1 },
+          timestamp: Date.now(),
+        })
+      })
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalled()
+      })
+      // Invalid state should not have been applied.
+      expect(result.current.state.count).toBe(0)
+    })
+
     it('should detect version conflicts', async () => {
       const onConflict = vi.fn()
 

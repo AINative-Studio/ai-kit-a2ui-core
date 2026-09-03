@@ -92,12 +92,17 @@ export function useA2UIState<T = unknown>(
         setIsLoading(false)
         setError(null)
       }
+      /* v8 ignore start -- extractValue() already catches everything
+       * internally and returns undefined rather than throwing, via the
+       * Map-backed getSurface() from context. This outer catch only
+       * defends against a future change to that contract. */
     } catch (err) {
       if (isMountedRef.current) {
         setError(err instanceof Error ? err : new Error('Failed to read state'))
         setIsLoading(false)
       }
     }
+    /* v8 ignore stop */
 
     return () => {
       isMountedRef.current = false
@@ -117,12 +122,15 @@ export function useA2UIState<T = unknown>(
         setValue(newValue)
         setIsLoading(false)
       }
+      /* v8 ignore start -- see the identical catch above; unreachable
+       * through the public API today. */
     } catch (err) {
       if (isMountedRef.current) {
         setError(err instanceof Error ? err : new Error('Failed to refresh state'))
         setIsLoading(false)
       }
     }
+    /* v8 ignore stop */
   }, [extractValue])
 
   return {

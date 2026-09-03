@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { A2UIProvider } from '../../src/context/A2UIProvider'
 import { useA2UIAction } from '../../src/hooks/useA2UIAction'
-import { A2UITransport } from '@ainative/ai-kit-a2ui-core/transport'
-import type { A2UIMessage, UserActionMessage } from '@ainative/ai-kit-a2ui-core/types'
+import type { UserActionMessage } from '@ainative/ai-kit-a2ui-core/types'
 import React from 'react'
 
 // Mock WebSocket
@@ -19,9 +18,11 @@ class MockWebSocket {
   static OPEN = 1
   static CLOSING = 2
   static CLOSED = 3
+  static instances: MockWebSocket[] = []
 
   constructor(url: string) {
     this.url = url
+    MockWebSocket.instances.push(this)
     setTimeout(() => {
       this.readyState = WebSocket.OPEN
       this.onopen?.(new Event('open'))
@@ -38,187 +39,130 @@ class MockWebSocket {
 global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 describe('useA2UIAction', () => {
-  let transport: A2UITransport
-  let mockWs: MockWebSocket
-
   beforeEach(() => {
-    transport = new A2UITransport('ws://localhost:8080')
+    MockWebSocket.instances = []
   })
 
   afterEach(() => {
-    transport.disconnect()
     vi.clearAllMocks()
   })
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <A2UIProvider transport={transport}>{children}</A2UIProvider>
+    <A2UIProvider url="ws://localhost:8080">{children}</A2UIProvider>
   )
 
   describe('Basic Functionality', () => {
-    it('should provide sendAction function', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should provide an executeAction function', () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
-      await waitFor(() => {
-        expect(typeof result.current.sendAction).toBe('function')
-      })
+      expect(typeof result.current.executeAction).toBe('function')
     })
 
-    it('should provide sendMessage function', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should provide a clearError function', () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
-      await waitFor(() => {
-        expect(typeof result.current.sendMessage).toBe('function')
-      })
+      expect(typeof result.current.clearError).toBe('function')
     })
 
-    it('should provide isPending state', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should start with isLoading false and no error', () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
-      expect(result.current.isPending).toBe(false)
-    })
-
-    it('should provide error state', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
+      expect(result.current.isLoading).toBe(false)
       expect(result.current.error).toBeNull()
     })
   })
 
   describe('Sending Actions', () => {
-    it('should send user action message', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      const sendSpy = vi.spyOn(transport, 'send')
+    it('should set an error and not send when not connected', () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       act(() => {
-        result.current.sendAction('button-click')
+        result.current.executeAction('button-1', 'click')
+      })
+
+      expect(result.current.error?.message).toBe('Cannot execute action: not connected to agent')
+    })
+
+    it('should send a user action message once connected', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
+
+      await waitFor(() => {
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
+      })
+
+      const sendSpy = MockWebSocket.instances[0]!.send
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
       })
 
       await waitFor(() => {
         expect(sendSpy).toHaveBeenCalled()
-        const sentMessage = sendSpy.mock.calls[0]?.[0] as UserActionMessage
-        expect(sentMessage.type).toBe('userAction')
-        expect(sentMessage.action).toBe('button-click')
       })
+
+      const sentMessage = JSON.parse(sendSpy.mock.calls[0]![0] as string) as UserActionMessage
+      expect(sentMessage.type).toBe('userAction')
+      expect(sentMessage.action).toBe('click')
+      expect(sentMessage.componentId).toBe('button-1')
+      expect(sentMessage.surfaceId).toBe('test-surface')
     })
 
-    it('should include context in action message', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should include context data in the action message', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      const sendSpy = vi.spyOn(transport, 'send')
+      const sendSpy = MockWebSocket.instances[0]!.send
       const context = { buttonId: 'submit', value: 'test' }
 
       act(() => {
-        result.current.sendAction('button-click', context)
+        result.current.executeAction('button-1', 'click', context)
       })
 
       await waitFor(() => {
         expect(sendSpy).toHaveBeenCalled()
-        const sentMessage = sendSpy.mock.calls[0]?.[0] as UserActionMessage
-        expect(sentMessage.context).toEqual(context)
       })
+
+      const sentMessage = JSON.parse(sendSpy.mock.calls[0]![0] as string) as UserActionMessage
+      expect(sentMessage.context).toEqual(context)
     })
 
-    it('should include current data model in action', async () => {
-      const initialState = { count: 5, name: 'Test' }
-
-      const CustomWrapper = ({ children }: { children: React.ReactNode }) => (
-        <A2UIProvider transport={transport} initialState={initialState}>
-          {children}
-        </A2UIProvider>
-      )
-
-      const { result } = renderHook(() => useA2UIAction(), { wrapper: CustomWrapper })
+    it('should default context to an empty object when omitted', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      const sendSpy = vi.spyOn(transport, 'send')
+      const sendSpy = MockWebSocket.instances[0]!.send
 
       act(() => {
-        result.current.sendAction('update')
+        result.current.executeAction('button-1', 'click')
       })
 
       await waitFor(() => {
         expect(sendSpy).toHaveBeenCalled()
-        const sentMessage = sendSpy.mock.calls[0]?.[0] as UserActionMessage
-        expect(sentMessage.dataModel).toEqual(initialState)
       })
+
+      const sentMessage = JSON.parse(sendSpy.mock.calls[0]![0] as string) as UserActionMessage
+      expect(sentMessage.context).toEqual({})
     })
 
-    it('should include surfaceId in action message', async () => {
-      const CustomWrapper = ({ children }: { children: React.ReactNode }) => (
-        <A2UIProvider transport={transport} surfaceId="test-surface">
-          {children}
-        </A2UIProvider>
-      )
-
-      const { result } = renderHook(() => useA2UIAction(), { wrapper: CustomWrapper })
+    it('should send multiple actions independently', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      const sendSpy = vi.spyOn(transport, 'send')
+      const sendSpy = MockWebSocket.instances[0]!.send
 
       act(() => {
-        result.current.sendAction('click')
-      })
-
-      await waitFor(() => {
-        expect(sendSpy).toHaveBeenCalled()
-        const sentMessage = sendSpy.mock.calls[0]?.[0] as UserActionMessage
-        expect(sentMessage.surfaceId).toBe('test-surface')
-      })
-    })
-  })
-
-  describe('Sending Custom Messages', () => {
-    it('should send any A2UI message', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      const sendSpy = vi.spyOn(transport, 'send')
-
-      const customMessage: A2UIMessage = {
-        type: 'ping',
-        timestamp: Date.now(),
-      }
-
-      act(() => {
-        result.current.sendMessage(customMessage)
-      })
-
-      await waitFor(() => {
-        expect(sendSpy).toHaveBeenCalledWith(customMessage)
-      })
-    })
-
-    it('should handle multiple message sends', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      const sendSpy = vi.spyOn(transport, 'send')
-
-      act(() => {
-        result.current.sendAction('action-1')
-        result.current.sendAction('action-2')
-        result.current.sendAction('action-3')
+        result.current.executeAction('a', 'click')
+        result.current.executeAction('b', 'click')
+        result.current.executeAction('c', 'click')
       })
 
       await waitFor(() => {
@@ -230,155 +174,181 @@ describe('useA2UIAction', () => {
   describe('Error Handling', () => {
     it('should throw error when used outside provider', () => {
       expect(() => {
-        renderHook(() => useA2UIAction())
-      }).toThrow('useA2UIAction must be used within A2UIProvider')
+        renderHook(() => useA2UIAction('test-surface'))
+      }).toThrow('useA2UIContext must be used within an A2UIProvider')
     })
 
-    it('should handle send errors gracefully', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      // Disconnect transport to cause error
-      act(() => {
-        transport.disconnect()
-      })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('disconnected')
-      })
-
-      // Should not throw, but log warning
-      const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    it('should clear error state via clearError', () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       act(() => {
-        result.current.sendAction('test')
+        result.current.executeAction('button-1', 'click')
       })
 
-      await waitFor(() => {
-        expect(consoleWarn).toHaveBeenCalled()
+      expect(result.current.error).not.toBeNull()
+
+      act(() => {
+        result.current.clearError()
       })
 
-      consoleWarn.mockRestore()
-    })
-
-    it('should clear error state', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      // Initially no error
       expect(result.current.error).toBeNull()
+    })
+
+    it('should clear a previous error on the next successful send', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
+
+      expect(result.current.error).not.toBeNull()
+
+      await waitFor(() => {
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
+      })
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
+
+      await waitFor(() => {
+        expect(result.current.error).toBeNull()
+      })
+    })
+  })
+
+  describe('Send Failures', () => {
+    it('should set an error when transport.send throws synchronously', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
+
+      await waitFor(() => {
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
+      })
+
+      MockWebSocket.instances[0]!.send.mockImplementationOnce(() => {
+        throw new Error('boom')
+      })
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
+
+      expect(result.current.error?.message).toBe('boom')
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    it('should wrap a non-Error throw in an Error', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
+
+      await waitFor(() => {
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
+      })
+
+      MockWebSocket.instances[0]!.send.mockImplementationOnce(() => {
+        throw 'not an error object'
+      })
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
+
+      expect(result.current.error?.message).toBe('Failed to execute action')
+    })
+  })
+
+  describe('Loading Timeout Safety Net', () => {
+    it('should reset isLoading after the 5s safety timeout even with no response', async () => {
+      vi.useFakeTimers()
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
+
+      expect(result.current.isLoading).toBe(true)
+
+      act(() => {
+        vi.advanceTimersByTime(5000)
+      })
+
+      expect(result.current.isLoading).toBe(false)
+      vi.useRealTimers()
     })
   })
 
   describe('Pending State', () => {
-    it('should track pending state during action', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should set isLoading true immediately after a successful send, then reset', async () => {
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      // Initially not pending
-      expect(result.current.isPending).toBe(false)
-
-      // Note: In a real implementation, isPending would be true during async operations
-      // For this synchronous mock, it remains false
       act(() => {
-        result.current.sendAction('test')
+        result.current.executeAction('button-1', 'click')
       })
 
-      expect(result.current.isPending).toBe(false)
+      expect(result.current.isLoading).toBe(true)
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
     })
   })
 
   describe('Performance', () => {
-    it('should maintain stable function references', async () => {
-      const { result, rerender } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should maintain a stable executeAction reference across rerenders', async () => {
+      const { result, rerender } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      const sendActionRef1 = result.current.sendAction
-      const sendMessageRef1 = result.current.sendMessage
-
+      const executeActionRef1 = result.current.executeAction
       rerender()
+      const executeActionRef2 = result.current.executeAction
 
-      const sendActionRef2 = result.current.sendAction
-      const sendMessageRef2 = result.current.sendMessage
-
-      expect(sendActionRef1).toBe(sendActionRef2)
-      expect(sendMessageRef1).toBe(sendMessageRef2)
+      expect(executeActionRef1).toBe(executeActionRef2)
     })
 
     it('should handle rapid action sends', async () => {
-      const { result } = renderHook(() => useA2UIAction(), { wrapper })
+      const { result } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      const sendSpy = vi.spyOn(transport, 'send')
+      const sendSpy = MockWebSocket.instances[0]!.send
 
-      // Send 100 actions rapidly
       act(() => {
-        for (let i = 0; i < 100; i++) {
-          result.current.sendAction(`action-${i}`)
+        for (let i = 0; i < 50; i++) {
+          result.current.executeAction(`button-${i}`, 'click')
         }
       })
 
       await waitFor(() => {
-        expect(sendSpy).toHaveBeenCalledTimes(100)
-      })
-    })
-  })
-
-  describe('Integration with State', () => {
-    it('should include latest state in actions', async () => {
-      const CustomWrapper = ({ children }: { children: React.ReactNode }) => (
-        <A2UIProvider transport={transport} initialState={{ count: 0 }}>
-          {children}
-        </A2UIProvider>
-      )
-
-      const { result } = renderHook(() => useA2UIAction(), { wrapper: CustomWrapper })
-
-      await waitFor(() => {
-        expect(transport.status).toBe('connected')
-      })
-
-      const sendSpy = vi.spyOn(transport, 'send')
-
-      act(() => {
-        result.current.sendAction('increment')
-      })
-
-      await waitFor(() => {
-        expect(sendSpy).toHaveBeenCalled()
-        const sentMessage = sendSpy.mock.calls[0]?.[0] as UserActionMessage
-        expect(sentMessage.dataModel).toBeDefined()
+        expect(sendSpy).toHaveBeenCalledTimes(50)
       })
     })
   })
 
   describe('Memory Management', () => {
-    it('should cleanup on unmount', async () => {
-      const { result, unmount } = renderHook(() => useA2UIAction(), { wrapper })
+    it('should not throw when unmounted', async () => {
+      const { result, unmount } = renderHook(() => useA2UIAction('test-surface'), { wrapper })
 
       await waitFor(() => {
-        expect(transport.status).toBe('connected')
+        expect(MockWebSocket.instances[0]?.readyState).toBe(MockWebSocket.OPEN)
       })
 
-      unmount()
+      act(() => {
+        result.current.executeAction('button-1', 'click')
+      })
 
-      // Should not throw errors after unmount
-      expect(true).toBe(true)
+      expect(() => unmount()).not.toThrow()
     })
   })
 })

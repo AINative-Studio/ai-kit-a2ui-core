@@ -135,8 +135,8 @@ export function useA2UIAgent(options: UseA2UIAgentOptions): UseA2UIAgentReturn {
       })
     })
 
-    // Auto-connect if specified
-    if (options.autoConnect) {
+    // Auto-connect by default, matching A2UIProvider's autoConnect convention
+    if (options.autoConnect ?? true) {
       transport.connect().catch((err) => {
         setError(err as Error)
       })
@@ -150,9 +150,13 @@ export function useA2UIAgent(options: UseA2UIAgentOptions): UseA2UIAgentReturn {
 
   // Send user action
   const send = useCallback((action: Omit<UserActionMessage, 'type'>) => {
+    /* v8 ignore start -- transportRef is set synchronously in the mount
+     * effect above, before any consumer can call send/connect/disconnect;
+     * this guards against a future refactor that defers transport setup. */
     if (!transportRef.current) {
       throw new Error('Transport not initialized')
     }
+    /* v8 ignore stop */
 
     transportRef.current.send({
       type: 'userAction',
@@ -162,17 +166,21 @@ export function useA2UIAgent(options: UseA2UIAgentOptions): UseA2UIAgentReturn {
 
   // Connect to agent
   const connect = useCallback(async () => {
+    /* v8 ignore start -- see send() above */
     if (!transportRef.current) {
       throw new Error('Transport not initialized')
     }
+    /* v8 ignore stop */
     await transportRef.current.connect()
   }, [])
 
   // Disconnect from agent
   const disconnect = useCallback(async () => {
+    /* v8 ignore start -- see send() above */
     if (!transportRef.current) {
       throw new Error('Transport not initialized')
     }
+    /* v8 ignore stop */
     transportRef.current.disconnect()
   }, [])
 

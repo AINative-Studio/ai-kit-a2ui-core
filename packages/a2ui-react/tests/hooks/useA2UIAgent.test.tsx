@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { A2UIProvider } from '../../src/context/A2UIProvider'
 import { useA2UIAgent } from '../../src/hooks/useA2UIAgent'
-import { A2UITransport } from '@ainative/ai-kit-a2ui-core/transport'
-import type { A2UIMessage, CreateSurfaceMessage } from '@ainative/ai-kit-a2ui-core/types'
-import React from 'react'
+import type { CreateSurfaceMessage, UpdateComponentsMessage } from '@ainative/ai-kit-a2ui-core/types'
 
 // Mock WebSocket
 class MockWebSocket {
@@ -20,12 +17,19 @@ class MockWebSocket {
   static CLOSING = 2
   static CLOSED = 3
 
+  static instances: MockWebSocket[] = []
+
   constructor(url: string) {
     this.url = url
+    MockWebSocket.instances.push(this)
     setTimeout(() => {
       this.readyState = WebSocket.OPEN
       this.onopen?.(new Event('open'))
     }, 0)
+  }
+
+  emitMessage(data: unknown) {
+    this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(data) }))
   }
 
   send = vi.fn()
@@ -38,268 +42,264 @@ class MockWebSocket {
 global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 describe('useA2UIAgent', () => {
-  let transport: A2UITransport
-
   beforeEach(() => {
-    transport = new A2UITransport('ws://localhost:8080')
+    MockWebSocket.instances = []
   })
 
   afterEach(() => {
-    transport.disconnect()
     vi.clearAllMocks()
   })
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <A2UIProvider transport={transport}>{children}</A2UIProvider>
-  )
-
   describe('Basic Functionality', () => {
-    it('should return agent state', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
+    it('should initialize with empty surfaces and disconnected state', () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
 
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      expect(result.current.messages).toEqual([])
-      expect(result.current.lastMessage).toBeNull()
-      expect(result.current.isConnected).toBe(true)
+      expect(result.current.surfaces.size).toBe(0)
+      expect(result.current.isConnected).toBe(false)
+      expect(result.current.isConnecting).toBe(false)
+      expect(result.current.error).toBeNull()
     })
 
-    it('should track connection status', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
+    it('should auto-connect by default', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
 
       await waitFor(() => {
-        expect(result.current.status).toBe('connected')
         expect(result.current.isConnected).toBe(true)
       })
     })
 
-    it('should update messages when received', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
+    it('should not auto-connect when autoConnect is false', async () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
 
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
+      // Give it a tick to make sure no connection happens
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(result.current.isConnected).toBe(false)
+    })
+
+    it('should expose a connect function that connects the transport', async () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
+
+      await act(async () => {
+        await result.current.connect()
       })
 
-      const message: CreateSurfaceMessage = {
-        type: 'createSurface',
-        surfaceId: 'test',
-        components: [],
-        dataModel: {},
-      }
-
-      // Simulate receiving a message
-      act(() => {
-        transport.on('message', (msg: A2UIMessage) => {
-          // Message handler will update state
-        })
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
       })
     })
 
-    it('should track last message', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
+    it('should expose a disconnect function', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
 
       await waitFor(() => {
-        expect(result.current.status).toBe('connected')
+        expect(result.current.isConnected).toBe(true)
       })
 
-      expect(result.current.lastMessage).toBeNull()
-    })
-
-    it('should accumulate messages in order', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      // Initially no messages
-      expect(result.current.messages).toHaveLength(0)
-    })
-  })
-
-  describe('Message Subscription', () => {
-    it('should provide subscribe function', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      expect(typeof result.current.subscribe).toBe('function')
-    })
-
-    it('should allow subscribing to specific message types', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      const handler = vi.fn()
-
-      act(() => {
-        const unsubscribe = result.current.subscribe('createSurface', handler)
-        expect(typeof unsubscribe).toBe('function')
-      })
-    })
-
-    it('should call handler when subscribed message type is received', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      const handler = vi.fn()
-
-      act(() => {
-        result.current.subscribe('createSurface', handler)
-      })
-
-      // Handler should be ready to receive messages
-      expect(handler).not.toHaveBeenCalled()
-    })
-
-    it('should return unsubscribe function', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      const handler = vi.fn()
-      let unsubscribe: (() => void) | undefined
-
-      act(() => {
-        unsubscribe = result.current.subscribe('createSurface', handler)
-      })
-
-      expect(typeof unsubscribe).toBe('function')
-
-      // Unsubscribe should work without errors
-      act(() => {
-        unsubscribe?.()
-      })
-    })
-
-    it('should stop calling handler after unsubscribe', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      const handler = vi.fn()
-
-      act(() => {
-        const unsubscribe = result.current.subscribe('createSurface', handler)
-        unsubscribe()
-      })
-
-      // After unsubscribe, handler should not be called
-      expect(handler).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('Error Handling', () => {
-    it('should handle missing context gracefully', () => {
-      expect(() => {
-        renderHook(() => useA2UIAgent())
-      }).toThrow('useA2UIAgent must be used within A2UIProvider')
-    })
-
-    it('should handle transport disconnection', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      act(() => {
-        transport.disconnect()
+      await act(async () => {
+        await result.current.disconnect()
       })
 
       await waitFor(() => {
-        expect(result.current.status).toBe('disconnected')
         expect(result.current.isConnected).toBe(false)
       })
     })
   })
 
-  describe('Memory Management', () => {
-    it('should cleanup subscriptions on unmount', async () => {
-      const { result, unmount } = renderHook(() => useA2UIAgent(), { wrapper })
+  describe('Surfaces', () => {
+    it('should add a surface when createSurface message is received', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
 
       await waitFor(() => {
-        expect(result.current.status).toBe('connected')
+        expect(result.current.isConnected).toBe(true)
       })
 
-      const handler = vi.fn()
+      const message: CreateSurfaceMessage = {
+        type: 'createSurface',
+        surfaceId: 'test-surface',
+        components: [],
+        dataModel: { count: 0 },
+      }
 
       act(() => {
-        result.current.subscribe('createSurface', handler)
+        MockWebSocket.instances[0]?.emitMessage(message)
       })
-
-      unmount()
-
-      // After unmount, subscriptions should be cleaned up
-      expect(handler).not.toHaveBeenCalled()
-    })
-
-    it('should not update state after unmount', async () => {
-      const { result, unmount } = renderHook(() => useA2UIAgent(), { wrapper })
 
       await waitFor(() => {
-        expect(result.current.status).toBe('connected')
+        expect(result.current.surfaces.has('test-surface')).toBe(true)
+      })
+      expect(result.current.surfaces.get('test-surface')?.dataModel).toEqual({ count: 0 })
+    })
+
+    it('should update components for an existing surface', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
       })
 
-      unmount()
+      const createMessage: CreateSurfaceMessage = {
+        type: 'createSurface',
+        surfaceId: 'test-surface',
+        components: [{ id: 'label-1', type: 'text', properties: { text: 'old' } }],
+        dataModel: {},
+      }
 
-      // Should not throw errors or warnings
-      expect(true).toBe(true)
+      act(() => {
+        MockWebSocket.instances[0]?.emitMessage(createMessage)
+      })
+
+      await waitFor(() => {
+        expect(result.current.surfaces.has('test-surface')).toBe(true)
+      })
+
+      const updateMessage: UpdateComponentsMessage = {
+        type: 'updateComponents',
+        surfaceId: 'test-surface',
+        updates: [
+          {
+            id: 'label-1',
+            operation: 'update',
+            component: { id: 'label-1', type: 'text', properties: { text: 'new' } },
+          },
+        ],
+      }
+
+      act(() => {
+        MockWebSocket.instances[0]?.emitMessage(updateMessage)
+      })
+
+      await waitFor(() => {
+        const surface = result.current.surfaces.get('test-surface')
+        expect(surface?.components[0]?.properties?.text).toBe('new')
+      })
+    })
+
+    it('should return undefined for a surface that does not exist', () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
+
+      expect(result.current.surfaces.get('missing')).toBeUndefined()
+    })
+  })
+
+  describe('send', () => {
+    it('should expose a send function immediately after mount', () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
+
+      expect(typeof result.current.send).toBe('function')
+    })
+
+    it('should throw when sending while disconnected', () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
+
+      expect(() =>
+        result.current.send({ surfaceId: 'test-surface', action: 'click', context: {} } as never)
+      ).toThrow('Cannot send message: not connected')
+    })
+
+    it('should send a user action message once connected', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
+      })
+
+      expect(() =>
+        result.current.send({ surfaceId: 'test-surface', action: 'click', context: {} } as never)
+      ).not.toThrow()
+    })
+  })
+
+  describe('Status and error handling', () => {
+    it('should set isConnecting true while connecting', async () => {
+      const { result } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080', autoConnect: false })
+      )
+
+      act(() => {
+        void result.current.connect()
+      })
+
+      expect(result.current.isConnecting).toBe(true)
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
+      })
+      expect(result.current.isConnecting).toBe(false)
+    })
+
+    it('should set an error when the transport emits a raw error event', async () => {
+      const { result } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
+      })
+
+      act(() => {
+        MockWebSocket.instances[0]?.onerror?.(new Event('error'))
+      })
+
+      await waitFor(() => {
+        expect(result.current.error).not.toBeNull()
+      })
+    })
+  })
+
+  describe('Reconnection options', () => {
+    it('should accept custom reconnect options without throwing', () => {
+      expect(() =>
+        renderHook(() =>
+          useA2UIAgent({
+            url: 'ws://localhost:8080',
+            autoConnect: false,
+            reconnect: false,
+            reconnectInterval: 1000,
+            maxReconnectAttempts: 2,
+          })
+        )
+      ).not.toThrow()
+    })
+  })
+
+  describe('Cleanup', () => {
+    it('should disconnect transport on unmount', async () => {
+      const { result, unmount } = renderHook(() => useA2UIAgent({ url: 'ws://localhost:8080' }))
+
+      await waitFor(() => {
+        expect(result.current.isConnected).toBe(true)
+      })
+
+      expect(() => unmount()).not.toThrow()
     })
   })
 
   describe('Performance', () => {
-    it('should maintain stable reference for subscribe function', async () => {
-      const { result, rerender } = renderHook(() => useA2UIAgent(), { wrapper })
+    it('should maintain a stable send function reference across rerenders', async () => {
+      const { result, rerender } = renderHook(() =>
+        useA2UIAgent({ url: 'ws://localhost:8080' })
+      )
 
       await waitFor(() => {
-        expect(result.current.status).toBe('connected')
+        expect(result.current.isConnected).toBe(true)
       })
 
-      const subscribeRef1 = result.current.subscribe
-
+      const sendRef1 = result.current.send
       rerender()
+      const sendRef2 = result.current.send
 
-      const subscribeRef2 = result.current.subscribe
-
-      expect(subscribeRef1).toBe(subscribeRef2)
-    })
-
-    it('should handle multiple concurrent subscriptions', async () => {
-      const { result } = renderHook(() => useA2UIAgent(), { wrapper })
-
-      await waitFor(() => {
-        expect(result.current.status).toBe('connected')
-      })
-
-      const handler1 = vi.fn()
-      const handler2 = vi.fn()
-      const handler3 = vi.fn()
-
-      act(() => {
-        result.current.subscribe('createSurface', handler1)
-        result.current.subscribe('updateComponents', handler2)
-        result.current.subscribe('updateDataModel', handler3)
-      })
-
-      // All handlers should be registered
-      expect(handler1).not.toHaveBeenCalled()
-      expect(handler2).not.toHaveBeenCalled()
-      expect(handler3).not.toHaveBeenCalled()
+      expect(sendRef1).toBe(sendRef2)
     })
   })
 })

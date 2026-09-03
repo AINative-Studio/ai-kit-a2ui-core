@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { A2UIProvider } from '../../src/context/A2UIProvider'
 import { useA2UIState } from '../../src/hooks/useA2UIState'
-import { A2UITransport } from '@ainative/ai-kit-a2ui-core/transport'
+import type { CreateSurfaceMessage, UpdateDataModelMessage } from '@ainative/ai-kit-a2ui-core/types'
 import React from 'react'
 
 // Mock WebSocket
@@ -18,13 +18,19 @@ class MockWebSocket {
   static OPEN = 1
   static CLOSING = 2
   static CLOSED = 3
+  static instances: MockWebSocket[] = []
 
   constructor(url: string) {
     this.url = url
+    MockWebSocket.instances.push(this)
     setTimeout(() => {
       this.readyState = WebSocket.OPEN
       this.onopen?.(new Event('open'))
     }, 0)
+  }
+
+  emitMessage(data: unknown) {
+    this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(data) }))
   }
 
   send = vi.fn()
@@ -37,221 +43,232 @@ class MockWebSocket {
 global.WebSocket = MockWebSocket as unknown as typeof WebSocket
 
 describe('useA2UIState', () => {
-  let transport: A2UITransport
-
   beforeEach(() => {
-    transport = new A2UITransport('ws://localhost:8080')
+    MockWebSocket.instances = []
   })
 
   afterEach(() => {
-    transport.disconnect()
     vi.clearAllMocks()
   })
 
-  const createWrapper = (initialState = {}) => {
-    const Wrapper = ({ children }: { children: React.ReactNode }) => (
-      <A2UIProvider transport={transport} initialState={initialState}>
-        {children}
-      </A2UIProvider>
-    )
-    return Wrapper
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <A2UIProvider url="ws://localhost:8080">{children}</A2UIProvider>
+  )
+
+  const createSurfaceWithDataModel = (surfaceId: string, dataModel: Record<string, unknown>) => {
+    const message: CreateSurfaceMessage = {
+      type: 'createSurface',
+      surfaceId,
+      components: [],
+      dataModel,
+    }
+    MockWebSocket.instances[0]?.emitMessage(message)
   }
 
   describe('Basic Functionality', () => {
-    it('should return initial state', async () => {
-      const initialState = { count: 0, name: 'Test' }
-      const wrapper = createWrapper(initialState)
+    it('should return undefined value when the surface does not exist', () => {
+      const { result } = renderHook(() => useA2UIState<number>('missing-surface', '/count'), {
+        wrapper,
+      })
 
-      const { result } = renderHook(() => useA2UIState<typeof initialState>(), { wrapper })
+      expect(result.current.value).toBeUndefined()
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.error).toBeNull()
+    })
+
+    it('should return the value at the given JSON pointer path once the surface exists', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<number>('test-surface', '/count'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { count: 5, name: 'Test' })
+      })
 
       await waitFor(() => {
-        expect(result.current.state).toEqual(initialState)
+        expect(result.current.value).toBe(5)
+        expect(result.current.isLoading).toBe(false)
       })
     })
 
-    it('should provide setState function', async () => {
-      const wrapper = createWrapper({ count: 0 })
+    it('should read nested paths', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/user/name'),
+        { wrapper }
+      )
 
-      const { result } = renderHook(() => useA2UIState<{ count: number }>(), { wrapper })
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { user: { name: 'Alice', age: 30 } })
+      })
 
-      expect(typeof result.current.setState).toBe('function')
+      await waitFor(() => {
+        expect(result.current.value).toBe('Alice')
+      })
     })
 
-    it('should provide replaceState function', async () => {
-      const wrapper = createWrapper({ count: 0 })
+    it('should read the whole data model at the root path', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<Record<string, unknown>>('test-surface', '/'),
+        { wrapper }
+      )
 
-      const { result } = renderHook(() => useA2UIState<{ count: number }>(), { wrapper })
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { count: 0, name: 'Root' })
+      })
 
-      expect(typeof result.current.replaceState).toBe('function')
+      await waitFor(() => {
+        expect(result.current.value).toEqual({ count: 0, name: 'Root' })
+      })
     })
 
-    it('should provide resetState function', async () => {
-      const wrapper = createWrapper({ count: 0 })
+    it('should provide a refresh function', () => {
+      const { result } = renderHook(() => useA2UIState('test-surface', '/count'), { wrapper })
 
-      const { result } = renderHook(() => useA2UIState<{ count: number }>(), { wrapper })
+      expect(typeof result.current.refresh).toBe('function')
+    })
 
-      expect(typeof result.current.resetState).toBe('function')
+    it('should re-read the current value when refresh is called', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<number>('test-surface', '/count'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { count: 1 })
+      })
+
+      await waitFor(() => {
+        expect(result.current.value).toBe(1)
+      })
+
+      act(() => {
+        result.current.refresh()
+      })
+
+      expect(result.current.isLoading).toBe(false)
+      expect(result.current.value).toBe(1)
+      expect(result.current.error).toBeNull()
+    })
+
+    it('should be a no-op to call refresh after unmount', async () => {
+      const { result, unmount } = renderHook(
+        () => useA2UIState<number>('test-surface', '/count'),
+        { wrapper }
+      )
+
+      unmount()
+
+      expect(() => result.current.refresh()).not.toThrow()
     })
   })
 
   describe('State Updates', () => {
-    it('should merge state updates', async () => {
-      const wrapper = createWrapper({ count: 0, name: 'Initial' })
-
+    it('should update the value when the data model changes', async () => {
       const { result } = renderHook(
-        () => useA2UIState<{ count: number; name: string }>(),
+        () => useA2UIState<number>('test-surface', '/count'),
         { wrapper }
       )
 
       act(() => {
-        result.current.setState({ count: 5 })
+        createSurfaceWithDataModel('test-surface', { count: 0 })
       })
 
       await waitFor(() => {
-        expect(result.current.state.count).toBe(5)
-        expect(result.current.state.name).toBe('Initial')
-      })
-    })
-
-    it('should handle multiple sequential updates', async () => {
-      const wrapper = createWrapper({ count: 0 })
-
-      const { result } = renderHook(() => useA2UIState<{ count: number }>(), { wrapper })
-
-      act(() => {
-        result.current.setState({ count: 1 })
-        result.current.setState({ count: 2 })
-        result.current.setState({ count: 3 })
+        expect(result.current.value).toBe(0)
       })
 
-      await waitFor(() => {
-        expect(result.current.state.count).toBe(3)
-      })
-    })
-
-    it('should handle nested object updates', async () => {
-      const wrapper = createWrapper({
-        user: { name: 'John', age: 30 },
-        settings: { theme: 'dark' },
-      })
-
-      const { result } = renderHook(
-        () => useA2UIState<{
-          user: { name: string; age: number }
-          settings: { theme: string }
-        }>(),
-        { wrapper }
-      )
-
-      act(() => {
-        result.current.setState({
-          user: { ...result.current.state.user, age: 31 },
-        })
-      })
-
-      await waitFor(() => {
-        expect(result.current.state.user.age).toBe(31)
-        expect(result.current.state.user.name).toBe('John')
-        expect(result.current.state.settings.theme).toBe('dark')
-      })
-    })
-
-    it('should replace entire state', async () => {
-      const wrapper = createWrapper({ count: 0, name: 'Initial' })
-
-      const { result } = renderHook(
-        () => useA2UIState<{ count: number; name: string }>(),
-        { wrapper }
-      )
-
-      act(() => {
-        result.current.replaceState({ count: 10, name: 'Replaced' })
-      })
-
-      await waitFor(() => {
-        expect(result.current.state).toEqual({ count: 10, name: 'Replaced' })
-      })
-    })
-
-    it('should reset to initial state', async () => {
-      const initialState = { count: 0, name: 'Initial' }
-      const wrapper = createWrapper(initialState)
-
-      const { result } = renderHook(
-        () => useA2UIState<{ count: number; name: string }>(),
-        { wrapper }
-      )
-
-      // Modify state
-      act(() => {
-        result.current.setState({ count: 99, name: 'Modified' })
-      })
-
-      await waitFor(() => {
-        expect(result.current.state.count).toBe(99)
-      })
-
-      // Reset
-      act(() => {
-        result.current.resetState()
-      })
-
-      await waitFor(() => {
-        expect(result.current.state).toEqual(initialState)
-      })
-    })
-  })
-
-  describe('Type Safety', () => {
-    it('should enforce typed state updates', async () => {
-      const wrapper = createWrapper({ count: 0, enabled: true })
-
-      const { result } = renderHook(
-        () => useA2UIState<{ count: number; enabled: boolean }>(),
-        { wrapper }
-      )
-
-      // This should work
-      act(() => {
-        result.current.setState({ count: 5 })
-        result.current.setState({ enabled: false })
-        result.current.setState({ count: 10, enabled: true })
-      })
-
-      await waitFor(() => {
-        expect(result.current.state.count).toBe(10)
-        expect(result.current.state.enabled).toBe(true)
-      })
-    })
-
-    it('should work with complex types', async () => {
-      type ComplexState = {
-        users: Array<{ id: string; name: string }>
-        metadata: {
-          total: number
-          page: number
-        }
+      const updateMessage: UpdateDataModelMessage = {
+        type: 'updateDataModel',
+        surfaceId: 'test-surface',
+        updates: [{ path: '/count', value: 5 }],
       }
 
-      const initialState: ComplexState = {
-        users: [{ id: '1', name: 'Alice' }],
-        metadata: { total: 1, page: 1 },
-      }
-
-      const wrapper = createWrapper(initialState)
-
-      const { result } = renderHook(() => useA2UIState<ComplexState>(), { wrapper })
-
       act(() => {
-        result.current.setState({
-          users: [...result.current.state.users, { id: '2', name: 'Bob' }],
-          metadata: { ...result.current.state.metadata, total: 2 },
-        })
+        MockWebSocket.instances[0]?.emitMessage(updateMessage)
       })
 
       await waitFor(() => {
-        expect(result.current.state.users).toHaveLength(2)
-        expect(result.current.state.metadata.total).toBe(2)
+        expect(result.current.value).toBe(5)
+      })
+    })
+
+    it('should return undefined for an array index out of bounds', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/items/5'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { items: ['a', 'b'] })
+      })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+      expect(result.current.value).toBeUndefined()
+    })
+
+    it('should return undefined when traversing through a non-object value', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/count/nested'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { count: 5 })
+      })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+      expect(result.current.value).toBeUndefined()
+    })
+
+    it('should return undefined for a negative array index', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/items/-1'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { items: ['a', 'b'] })
+      })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+      expect(result.current.value).toBeUndefined()
+    })
+
+    it('should return undefined for a non-numeric array index', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/items/foo'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { items: ['a', 'b'] })
+      })
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+      expect(result.current.value).toBeUndefined()
+    })
+
+    it('should read array elements by index', async () => {
+      const { result } = renderHook(
+        () => useA2UIState<string>('test-surface', '/items/1'),
+        { wrapper }
+      )
+
+      act(() => {
+        createSurfaceWithDataModel('test-surface', { items: ['a', 'b', 'c'] })
+      })
+
+      await waitFor(() => {
+        expect(result.current.value).toBe('b')
       })
     })
   })
@@ -259,88 +276,42 @@ describe('useA2UIState', () => {
   describe('Error Handling', () => {
     it('should throw error when used outside provider', () => {
       expect(() => {
-        renderHook(() => useA2UIState())
-      }).toThrow('useA2UIState must be used within A2UIProvider')
-    })
-
-    it('should handle empty initial state', async () => {
-      const wrapper = createWrapper({})
-
-      const { result } = renderHook(() => useA2UIState<Record<string, never>>(), {
-        wrapper,
-      })
-
-      expect(result.current.state).toEqual({})
+        renderHook(() => useA2UIState('test-surface', '/count'))
+      }).toThrow('useA2UIContext must be used within an A2UIProvider')
     })
   })
 
   describe('Performance', () => {
-    it('should maintain stable function references', async () => {
-      const wrapper = createWrapper({ count: 0 })
-
+    it('should maintain a stable refresh function reference across rerenders with the same args', async () => {
       const { result, rerender } = renderHook(
-        () => useA2UIState<{ count: number }>(),
+        () => useA2UIState<number>('test-surface', '/count'),
         { wrapper }
       )
 
-      const setStateRef1 = result.current.setState
-      const replaceStateRef1 = result.current.replaceState
-      const resetStateRef1 = result.current.resetState
-
-      rerender()
-
-      const setStateRef2 = result.current.setState
-      const replaceStateRef2 = result.current.replaceState
-      const resetStateRef2 = result.current.resetState
-
-      expect(setStateRef1).toBe(setStateRef2)
-      expect(replaceStateRef1).toBe(replaceStateRef2)
-      expect(resetStateRef1).toBe(resetStateRef2)
-    })
-
-    it('should not cause unnecessary re-renders', async () => {
-      const wrapper = createWrapper({ count: 0 })
-      let renderCount = 0
-
-      const { result } = renderHook(
-        () => {
-          renderCount++
-          return useA2UIState<{ count: number }>()
-        },
-        { wrapper }
-      )
-
-      const initialRenderCount = renderCount
-
-      // Update with same value
       act(() => {
-        result.current.setState({ count: 0 })
+        createSurfaceWithDataModel('test-surface', { count: 0 })
       })
 
       await waitFor(() => {
-        // Should trigger re-render even with same value (React behavior)
-        expect(renderCount).toBeGreaterThanOrEqual(initialRenderCount)
+        expect(result.current.isLoading).toBe(false)
       })
+
+      const refreshRef1 = result.current.refresh
+      rerender()
+      const refreshRef2 = result.current.refresh
+
+      expect(refreshRef1).toBe(refreshRef2)
     })
   })
 
   describe('Memory Management', () => {
-    it('should cleanup on unmount', async () => {
-      const wrapper = createWrapper({ count: 0 })
-
-      const { result, unmount } = renderHook(
-        () => useA2UIState<{ count: number }>(),
+    it('should not throw when unmounted before the surface resolves', () => {
+      const { unmount } = renderHook(
+        () => useA2UIState<number>('test-surface', '/count'),
         { wrapper }
       )
 
-      act(() => {
-        result.current.setState({ count: 5 })
-      })
-
-      unmount()
-
-      // Should not throw errors after unmount
-      expect(true).toBe(true)
+      expect(() => unmount()).not.toThrow()
     })
   })
 })

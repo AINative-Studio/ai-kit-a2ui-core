@@ -75,7 +75,13 @@ export function A2UIProvider({
     transportRef.current = transport
 
     // Status change handler
+    // v8 ignore reason (applies to all isMountedRef guards in this effect):
+    // each handler is unregistered via transport.off(...) in the cleanup
+    // function below, so none of them can actually fire once
+    // isMountedRef.current is false — these guard against a future change
+    // where a handler might outlive its transport.off() call.
     const handleStatusChange = (status: TransportStatus) => {
+      /* v8 ignore next */
       if (!isMountedRef.current) return
 
       setIsConnected(status === 'connected')
@@ -91,12 +97,14 @@ export function A2UIProvider({
 
     // Error handler
     const handleError = (error: Error) => {
+      /* v8 ignore next */
       if (!isMountedRef.current) return
       onError?.(error)
     }
 
     // Create surface handler
     const handleCreateSurface = (message: CreateSurfaceMessage) => {
+      /* v8 ignore next */
       if (!isMountedRef.current) return
 
       setSurfaces((prev) => {
@@ -112,6 +120,7 @@ export function A2UIProvider({
 
     // Update components handler
     const handleUpdateComponents = (message: UpdateComponentsMessage) => {
+      /* v8 ignore next */
       if (!isMountedRef.current) return
 
       setSurfaces((prev) => {
@@ -119,8 +128,9 @@ export function A2UIProvider({
         if (!surface) return prev
 
         const next = new Map(prev)
+        const existingIds = new Set(surface.components.map((c) => c.id))
 
-        // Apply component updates
+        // Apply update/remove operations to existing components
         const updatedComponents = surface.components.map((component) => {
           const update = message.updates?.find((u) => u.id === component.id)
           if (update && update.component) {
@@ -142,9 +152,16 @@ export function A2UIProvider({
           return !update || update.operation !== 'remove'
         })
 
+        // `add` updates for ids not already in the surface are new
+        // components — .map() above only transforms existing entries, so
+        // append these separately.
+        const newComponents = (message.updates ?? [])
+          .filter((u) => u.operation === 'add' && u.component && !existingIds.has(u.id))
+          .map((u) => u.component!)
+
         next.set(message.surfaceId, {
           ...surface,
-          components: updatedComponents,
+          components: [...updatedComponents, ...newComponents],
         })
         return next
       })
@@ -152,6 +169,8 @@ export function A2UIProvider({
 
     // Update data model handler
     const handleUpdateDataModel = (message: UpdateDataModelMessage) => {
+      /* v8 ignore next -- unreachable: cleanup below calls
+       * transport.off(..., handleUpdateDataModel) on unmount. */
       if (!isMountedRef.current) return
 
       setSurfaces((prev) => {
@@ -178,6 +197,9 @@ export function A2UIProvider({
 
     // Delete surface handler
     const handleDeleteSurface = (message: { surfaceId: SurfaceId }) => {
+      /* v8 ignore next -- unreachable: the cleanup effect below calls
+       * transport.off(..., handleDeleteSurface) on unmount, so this handler
+       * can't actually be invoked once isMountedRef.current is false. */
       if (!isMountedRef.current) return
 
       setSurfaces((prev) => {
