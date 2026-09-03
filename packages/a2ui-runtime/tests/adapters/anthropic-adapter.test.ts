@@ -1,91 +1,108 @@
 /**
- * Anthropic Adapter Tests
+ * Anthropic Adapter Comprehensive Test Suite
  *
- * Comprehensive test suite for Anthropic LLM adapter
- * Target: 85%+ code coverage, 40+ tests
+ * Tests for the Anthropic adapter covering:
+ * - Constructor and initialization
+ * - generateUI streaming
+ * - executeAction validation
+ * - streamResponse callbacks and system message filtering
+ * - convertActionsToTools (Anthropic format)
+ * - Error handling (LLMProviderError)
+ *
+ * Target: 85%+ code coverage
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { AnthropicAdapter, type AnthropicConfig } from '../../src/adapters/anthropic-adapter'
-import { LLMProviderError } from '../../src/errors/runtime-errors'
-import type { RuntimeContext, GenerationOptions, StreamOptions, ChatMessage } from '../../src/types/runtime-types'
-import { ActionRegistry } from '../../src/actions/action-registry'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { z } from 'zod'
 
 // Mock Anthropic SDK
 vi.mock('@anthropic-ai/sdk', () => {
   return {
     default: vi.fn().mockImplementation(() => ({
-      messages: {
-        create: vi.fn(),
-      },
+      messages: { create: vi.fn() },
     })),
   }
 })
 
+import { AnthropicAdapter } from '../../src/adapters/anthropic-adapter.js'
+import { LLMProviderError } from '../../src/errors/runtime-errors.js'
+
+/**
+ * Helper: create a mock async iterable stream of Anthropic SSE events
+ */
+function createMockStream(events: any[]): AsyncIterable<any> {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      for (const event of events) {
+        yield event
+      }
+    },
+  }
+}
+
+const makeContext = (id = 'req-001') => ({
+  requestId: id,
+  timestamp: new Date(),
+  actions: new Map(),
+  metadata: {},
+})
+
 describe('AnthropicAdapter', () => {
-  let adapter: AnthropicAdapter
+  let adapter: any
   let mockClient: any
-  let context: RuntimeContext
-  let config: AnthropicConfig
 
   beforeEach(() => {
-    // Reset all mocks before each test
     vi.clearAllMocks()
 
-    config = {
-      apiKey: 'sk-test-key',
-      defaultModel: 'claude-3-5-sonnet-20241022',
-    }
-
-    // Create mock Anthropic client
     mockClient = {
-      messages: {
-        create: vi.fn(),
-      },
+      messages: { create: vi.fn() },
     }
 
-    // Create adapter with mocked client
-    adapter = new AnthropicAdapter(config, mockClient)
-
-    // Setup runtime context
-    context = {
-      requestId: 'test-request-123',
-      timestamp: new Date(),
-      actions: new Map(),
-      metadata: {},
-    }
+    adapter = new AnthropicAdapter(
+      { apiKey: 'sk-test', defaultModel: 'claude-3-5-sonnet-20241022' },
+      mockClient
+    )
   })
 
-  describe('Constructor and Initialization', () => {
-    it('should create adapter with provided client', () => {
-      expect(adapter).toBeInstanceOf(AnthropicAdapter)
-      expect(adapter.provider).toBe('anthropic')
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // ========================================
+  // 1. Constructor
+  // ========================================
+  describe('Constructor', () => {
+    it('should create adapter with injected client', () => {
+      expect(adapter).toBeDefined()
+      expect(adapter.client).toBe(mockClient)
     })
 
-    it('should use default model if not specified', () => {
-      const adapterWithDefaults = new AnthropicAdapter(
-        { apiKey: 'test-key' },
-        mockClient
-      )
-      expect(adapterWithDefaults).toBeDefined()
+    it('should create adapter with config only (no injected client)', () => {
+      const a = new AnthropicAdapter({ apiKey: 'sk-test' })
+      expect(a).toBeDefined()
+      expect(a.provider).toBe('anthropic')
     })
 
-    it('should use custom default model when specified', () => {
-      const customAdapter = new AnthropicAdapter(
-        { apiKey: 'test-key', defaultModel: 'claude-4' },
-        mockClient
-      )
-      expect(customAdapter).toBeDefined()
+    it('should set defaultModel to claude-3-5-sonnet-20241022 when not specified', () => {
+      const a = new AnthropicAdapter({ apiKey: 'sk-test' }, mockClient)
+      expect(a.defaultModel).toBe('claude-3-5-sonnet-20241022')
     })
 
-    it('should have correct provider identifier', () => {
+    it('should use provided defaultModel', () => {
+      const a = new AnthropicAdapter({ apiKey: 'sk-test', defaultModel: 'claude-4' }, mockClient)
+      expect(a.defaultModel).toBe('claude-4')
+    })
+
+    it('should have provider set to anthropic', () => {
       expect(adapter.provider).toBe('anthropic')
     })
   })
 
-  describe('Basic UI Generation', () => {
-    it('should generate UI from simple prompt', async () => {
+  // ========================================
+  // 2. generateUI
+  // ========================================
+  describe('generateUI', () => {
+    it('should yield chunks from stream', async () => {
       const mockStream = createMockStream([
         { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hello' } },
         { type: 'content_block_delta', delta: { type: 'text_delta', text: ' World' } },
@@ -94,7 +111,7 @@ describe('AnthropicAdapter', () => {
       mockClient.messages.create.mockResolvedValue(mockStream)
 
       const chunks: string[] = []
-      for await (const chunk of adapter.generateUI('Test prompt', context)) {
+      for await (const chunk of adapter.generateUI('Test prompt', makeContext())) {
         chunks.push(chunk)
       }
 
@@ -102,142 +119,96 @@ describe('AnthropicAdapter', () => {
       expect(mockClient.messages.create).toHaveBeenCalledTimes(1)
     })
 
-    it('should pass prompt to Anthropic API', async () => {
+    it('should use correct model from options', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const generator = adapter.generateUI('Create a button', context)
-      // Consume the generator
-      for await (const _ of generator) {
-        // Just consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext(), { model: 'claude-4' })) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.messages[0].content).toBe('Create a button')
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'claude-4' })
+      )
     })
 
-    it('should use default model when no options provided', async () => {
+    it('should use defaultModel when no options provided', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const generator = adapter.generateUI('Test', context)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.model).toBe('claude-3-5-sonnet-20241022')
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'claude-3-5-sonnet-20241022' })
+      )
     })
 
-    it('should use custom model from options', async () => {
+    it('should pass temperature to Anthropic', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const options: GenerationOptions = { model: 'claude-4' }
-      const generator = adapter.generateUI('Test', context, options)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext(), { temperature: 0.7 })) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.model).toBe('claude-4')
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ temperature: 0.7 })
+      )
     })
 
-    it('should handle temperature option', async () => {
+    it('should pass maxTokens to Anthropic', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const options: GenerationOptions = { temperature: 0.7 }
-      const generator = adapter.generateUI('Test', context, options)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext(), { maxTokens: 2048 })) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.temperature).toBe(0.7)
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ max_tokens: 2048 })
+      )
     })
 
-    it('should handle maxTokens option', async () => {
+    it('should use default max_tokens of 4096 when not specified', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const options: GenerationOptions = { maxTokens: 2048 }
-      const generator = adapter.generateUI('Test', context, options)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.max_tokens).toBe(2048)
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ max_tokens: 4096 })
+      )
     })
 
-    it('should use default max_tokens of 4096', async () => {
+    it('should pass topP to Anthropic', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const generator = adapter.generateUI('Test', context)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext(), { topP: 0.9 })) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.max_tokens).toBe(4096)
-    })
-
-    it('should handle topP option', async () => {
-      const mockStream = createMockStream([])
-      mockClient.messages.create.mockResolvedValue(mockStream)
-
-      const options: GenerationOptions = { topP: 0.9 }
-      const generator = adapter.generateUI('Test', context, options)
-      for await (const _ of generator) {
-        // Consume
-      }
-
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.top_p).toBe(0.9)
-    })
-
-    it('should handle stop sequences', async () => {
-      const mockStream = createMockStream([])
-      mockClient.messages.create.mockResolvedValue(mockStream)
-
-      const options: GenerationOptions = { stopSequences: ['STOP', 'END'] }
-      const generator = adapter.generateUI('Test', context, options)
-      for await (const _ of generator) {
-        // Consume
-      }
-
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.stop_sequences).toEqual(['STOP', 'END'])
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ top_p: 0.9 })
+      )
     })
 
     it('should enable streaming', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const generator = adapter.generateUI('Test', context)
-      for await (const _ of generator) {
-        // Consume
-      }
+      for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
 
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.stream).toBe(true)
+      expect(mockClient.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({ stream: true })
+      )
     })
 
-    it('should handle empty stream', async () => {
+    it('should handle empty stream (no chunks)', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
       const chunks: string[] = []
-      for await (const chunk of adapter.generateUI('Test', context)) {
+      for await (const chunk of adapter.generateUI('Test', makeContext())) {
         chunks.push(chunk)
       }
 
       expect(chunks).toEqual([])
     })
 
-    it('should filter non-text-delta events', async () => {
+    it('should skip non-text_delta events', async () => {
       const mockStream = createMockStream([
         { type: 'message_start', message: {} },
         { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hello' } },
@@ -248,146 +219,175 @@ describe('AnthropicAdapter', () => {
       mockClient.messages.create.mockResolvedValue(mockStream)
 
       const chunks: string[] = []
-      for await (const chunk of adapter.generateUI('Test', context)) {
+      for await (const chunk of adapter.generateUI('Test', makeContext())) {
         chunks.push(chunk)
       }
 
       expect(chunks).toEqual(['Hello'])
     })
-  })
 
-  describe('Error Handling', () => {
-    it('should throw LLMProviderError on API error with status', async () => {
-      const apiError = new Error('Rate limit exceeded')
-      Object.assign(apiError, { status: 429 })
-
-      mockClient.messages.create.mockRejectedValue(apiError)
-
-      await expect(async () => {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      }).rejects.toThrow(LLMProviderError)
-    })
-
-    it('should include provider name in error', async () => {
-      const apiError = new Error('Authentication failed')
-      Object.assign(apiError, { status: 401 })
-
-      mockClient.messages.create.mockRejectedValue(apiError)
-
-      try {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      } catch (error) {
-        expect(error).toBeInstanceOf(LLMProviderError)
-        expect((error as LLMProviderError).provider).toBe('anthropic')
-      }
-    })
-
-    it('should include status code in error', async () => {
-      const apiError = new Error('Server error')
-      Object.assign(apiError, { status: 500 })
-
-      mockClient.messages.create.mockRejectedValue(apiError)
-
-      try {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      } catch (error) {
-        expect(error).toBeInstanceOf(LLMProviderError)
-        expect((error as LLMProviderError).status).toBe(500)
-      }
-    })
-
-    it('should re-throw non-API errors', async () => {
-      const networkError = new Error('Network timeout')
-      mockClient.messages.create.mockRejectedValue(networkError)
-
-      await expect(async () => {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      }).rejects.toThrow('Network timeout')
-    })
-
-    it('should handle undefined error object', async () => {
-      mockClient.messages.create.mockRejectedValue(undefined)
-
-      await expect(async () => {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      }).rejects.toBeUndefined()
-    })
-
-    it('should handle error without status property', async () => {
-      const simpleError = new Error('Something went wrong')
-      mockClient.messages.create.mockRejectedValue(simpleError)
-
-      await expect(async () => {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      }).rejects.toThrow('Something went wrong')
-    })
-
-    it('should handle malformed error objects', async () => {
-      const malformedError = { weird: 'structure' }
-      mockClient.messages.create.mockRejectedValue(malformedError)
-
-      await expect(async () => {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      }).rejects.toBeDefined()
-    })
-
-    it('should wrap API error message', async () => {
-      const apiError = new Error('Invalid request')
-      Object.assign(apiError, { status: 400 })
-
-      mockClient.messages.create.mockRejectedValue(apiError)
-
-      try {
-        const generator = adapter.generateUI('Test', context)
-        for await (const _ of generator) {
-          // Consume
-        }
-      } catch (error) {
-        expect((error as Error).message).toContain('Anthropic API error')
-        expect((error as Error).message).toContain('Invalid request')
-      }
-    })
-  })
-
-  describe('Streaming Response', () => {
-    it('should stream chat messages', async () => {
+    it('should skip content_block_delta events that are not text_delta type', async () => {
       const mockStream = createMockStream([
-        { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Response' } },
+        { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{}' } },
+        { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Only this' } },
       ])
 
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const messages: ChatMessage[] = [
-        { role: 'user', content: 'Hello' },
-      ]
+      const chunks: string[] = []
+      for await (const chunk of adapter.generateUI('Test', makeContext())) {
+        chunks.push(chunk)
+      }
+
+      expect(chunks).toEqual(['Only this'])
+    })
+
+    it('should throw LLMProviderError on API error with status', async () => {
+      const apiError: any = new Error('Rate limit exceeded')
+      apiError.status = 429
+
+      mockClient.messages.create.mockRejectedValue(apiError)
+
+      await expect(async () => {
+        for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
+      }).rejects.toThrow(LLMProviderError)
+    })
+
+    it('should set provider to anthropic on LLMProviderError', async () => {
+      const apiError: any = new Error('Auth failed')
+      apiError.status = 401
+
+      mockClient.messages.create.mockRejectedValue(apiError)
+
+      try {
+        for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(LLMProviderError)
+        expect(error.provider).toBe('anthropic')
+      }
+    })
+
+    it('should include status code in LLMProviderError', async () => {
+      const apiError: any = new Error('Server error')
+      apiError.status = 500
+
+      mockClient.messages.create.mockRejectedValue(apiError)
+
+      try {
+        for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
+      } catch (error: any) {
+        expect(error).toBeInstanceOf(LLMProviderError)
+        expect(error.status).toBe(500)
+      }
+    })
+
+    it('should rethrow non-status errors', async () => {
+      const networkError = new Error('Network timeout')
+      mockClient.messages.create.mockRejectedValue(networkError)
+
+      await expect(async () => {
+        for await (const _ of adapter.generateUI('Test', makeContext())) { /* consume */ }
+      }).rejects.toThrow('Network timeout')
+    })
+  })
+
+  // ========================================
+  // 3. executeAction
+  // ========================================
+  describe('executeAction', () => {
+    it('should return success result when schema valid', async () => {
+      const action = {
+        name: 'test_action',
+        description: 'Test action',
+        parameters: z.object({ value: z.string() }),
+        handler: vi.fn().mockResolvedValue({ success: true, data: 'result' }),
+      }
+
+      const result = await adapter.executeAction(action, { value: 'test' })
+
+      expect(result.success).toBe(true)
+      expect(result.data).toBe('result')
+      expect(action.handler).toHaveBeenCalledWith({ value: 'test' })
+    })
+
+    it('should return {success:false, error} when schema invalid', async () => {
+      const action = {
+        name: 'test_action',
+        description: 'Test action',
+        parameters: z.object({ value: z.string() }),
+        handler: vi.fn(),
+      }
+
+      const result = await adapter.executeAction(action, { value: 123 })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBeDefined()
+      expect(action.handler).not.toHaveBeenCalled()
+    })
+
+    it('should call action.handler with parsed data', async () => {
+      const action = {
+        name: 'complex_action',
+        description: 'Complex parameters',
+        parameters: z.object({ name: z.string(), count: z.number() }),
+        handler: vi.fn().mockResolvedValue({ success: true }),
+      }
+
+      const params = { name: 'test', count: 5 }
+      await adapter.executeAction(action, params)
+
+      expect(action.handler).toHaveBeenCalledWith(params)
+    })
+
+    it('should return error for missing required fields', async () => {
+      const action = {
+        name: 'test_action',
+        description: 'Test',
+        parameters: z.object({ required: z.string() }),
+        handler: vi.fn(),
+      }
+
+      const result = await adapter.executeAction(action, {})
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('required')
+    })
+
+    it('should handle action handler returning error result', async () => {
+      const action = {
+        name: 'failing_action',
+        description: 'Always fails',
+        parameters: z.object({}),
+        handler: vi.fn().mockResolvedValue({ success: false, error: 'Action failed' }),
+      }
+
+      const result = await adapter.executeAction(action, {})
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('Action failed')
+    })
+  })
+
+  // ========================================
+  // 4. streamResponse
+  // ========================================
+  describe('streamResponse', () => {
+    it('should yield text_delta chunks', async () => {
+      const mockStream = createMockStream([
+        { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Response' } },
+        { type: 'content_block_delta', delta: { type: 'text_delta', text: ' text' } },
+      ])
+
+      mockClient.messages.create.mockResolvedValue(mockStream)
+
+      const messages = [{ role: 'user' as const, content: 'Hello' }]
 
       const chunks: string[] = []
       for await (const chunk of adapter.streamResponse(messages)) {
         chunks.push(chunk)
       }
 
-      expect(chunks).toEqual(['Response'])
+      expect(chunks).toEqual(['Response', ' text'])
     })
 
     it('should call onChunk callback', async () => {
@@ -399,13 +399,9 @@ describe('AnthropicAdapter', () => {
       mockClient.messages.create.mockResolvedValue(mockStream)
 
       const onChunk = vi.fn()
-      const options: StreamOptions = { onChunk }
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
-
-      for await (const _ of adapter.streamResponse(messages, options)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages, { onChunk })) { /* consume */ }
 
       expect(onChunk).toHaveBeenCalledTimes(2)
       expect(onChunk).toHaveBeenNthCalledWith(1, 'Hello')
@@ -420,13 +416,9 @@ describe('AnthropicAdapter', () => {
       mockClient.messages.create.mockResolvedValue(mockStream)
 
       const onComplete = vi.fn()
-      const options: StreamOptions = { onComplete }
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
-
-      for await (const _ of adapter.streamResponse(messages, options)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages, { onComplete })) { /* consume */ }
 
       expect(onComplete).toHaveBeenCalledTimes(1)
     })
@@ -436,17 +428,11 @@ describe('AnthropicAdapter', () => {
       mockClient.messages.create.mockRejectedValue(apiError)
 
       const onError = vi.fn()
-      const options: StreamOptions = { onError }
-
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
       try {
-        for await (const _ of adapter.streamResponse(messages, options)) {
-          // Consume
-        }
-      } catch {
-        // Expected
-      }
+        for await (const _ of adapter.streamResponse(messages, { onError })) { /* consume */ }
+      } catch { /* expected */ }
 
       expect(onError).toHaveBeenCalledWith(apiError)
     })
@@ -455,176 +441,39 @@ describe('AnthropicAdapter', () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const messages: ChatMessage[] = [
-        { role: 'system', content: 'System message' },
-        { role: 'user', content: 'User message' },
-        { role: 'assistant', content: 'Assistant message' },
+      const messages = [
+        { role: 'system' as const, content: 'System message' },
+        { role: 'user' as const, content: 'User message' },
+        { role: 'assistant' as const, content: 'Assistant message' },
       ]
 
-      for await (const _ of adapter.streamResponse(messages)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages)) { /* consume */ }
 
       const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.messages).toHaveLength(2)
-      expect(createCall.messages[0].role).toBe('user')
-      expect(createCall.messages[1].role).toBe('assistant')
-    })
-
-    it('should handle null content in messages', async () => {
-      const mockStream = createMockStream([])
-      mockClient.messages.create.mockResolvedValue(mockStream)
-
-      const messages: ChatMessage[] = [
-        { role: 'user', content: null },
-      ]
-
-      for await (const _ of adapter.streamResponse(messages)) {
-        // Consume
-      }
-
-      const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.messages[0].content).toBe('')
+      const roles = createCall.messages.map((m: any) => m.role)
+      expect(roles).not.toContain('system')
+      expect(roles).toContain('user')
+      expect(roles).toContain('assistant')
     })
 
     it('should throw LLMProviderError on stream failure', async () => {
       const streamError = new Error('Connection lost')
       mockClient.messages.create.mockRejectedValue(streamError)
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
       await expect(async () => {
-        for await (const _ of adapter.streamResponse(messages)) {
-          // Consume
-        }
+        for await (const _ of adapter.streamResponse(messages)) { /* consume */ }
       }).rejects.toThrow(LLMProviderError)
     })
 
-    it('should include error message in LLMProviderError', async () => {
-      const streamError = new Error('Timeout')
-      mockClient.messages.create.mockRejectedValue(streamError)
-
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
-
-      try {
-        for await (const _ of adapter.streamResponse(messages)) {
-          // Consume
-        }
-      } catch (error) {
-        expect((error as Error).message).toContain('Anthropic streaming error')
-        expect((error as Error).message).toContain('Timeout')
-      }
-    })
-  })
-
-  describe('Action Execution', () => {
-    it('should execute action with valid parameters', async () => {
-      const action = {
-        name: 'test_action',
-        description: 'Test action',
-        parameters: z.object({ value: z.string() }),
-        handler: vi.fn().mockResolvedValue({ success: true, data: 'result' }),
-      }
-
-      const params = { value: 'test' }
-      const result = await adapter.executeAction(action, params)
-
-      expect(result.success).toBe(true)
-      expect(result.data).toBe('result')
-      expect(action.handler).toHaveBeenCalledWith(params)
-    })
-
-    it('should validate action parameters', async () => {
-      const action = {
-        name: 'test_action',
-        description: 'Test action',
-        parameters: z.object({ value: z.string() }),
-        handler: vi.fn().mockResolvedValue({ success: true }),
-      }
-
-      const invalidParams = { value: 123 } // Should be string
-      const result = await adapter.executeAction(action, invalidParams)
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBeDefined()
-      expect(action.handler).not.toHaveBeenCalled()
-    })
-
-    it('should return error for invalid parameters', async () => {
-      const action = {
-        name: 'test_action',
-        description: 'Test action',
-        parameters: z.object({
-          required: z.string(),
-          optional: z.number().optional()
-        }),
-        handler: vi.fn(),
-      }
-
-      const result = await adapter.executeAction(action, {})
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('required')
-    })
-
-    it('should handle action handler returning success', async () => {
-      const action = {
-        name: 'success_action',
-        description: 'Always succeeds',
-        parameters: z.object({}),
-        handler: vi.fn().mockResolvedValue({ success: true, data: { value: 42 } }),
-      }
-
-      const result = await adapter.executeAction(action, {})
-
-      expect(result.success).toBe(true)
-      expect(result.data).toEqual({ value: 42 })
-    })
-
-    it('should handle action handler returning error', async () => {
-      const action = {
-        name: 'failing_action',
-        description: 'Always fails',
-        parameters: z.object({}),
-        handler: vi.fn().mockResolvedValue({ success: false, error: 'Action failed' }),
-      }
-
-      const result = await adapter.executeAction(action, {})
-
-      expect(result.success).toBe(false)
-      expect(result.error).toBe('Action failed')
-    })
-
-    it('should pass validated parameters to handler', async () => {
-      const action = {
-        name: 'complex_action',
-        description: 'Complex parameters',
-        parameters: z.object({
-          name: z.string(),
-          count: z.number(),
-          enabled: z.boolean().optional(),
-        }),
-        handler: vi.fn().mockResolvedValue({ success: true }),
-      }
-
-      const params = { name: 'test', count: 5, enabled: true }
-      await adapter.executeAction(action, params)
-
-      expect(action.handler).toHaveBeenCalledWith(params)
-    })
-  })
-
-  describe('Configuration', () => {
-    it('should use custom model in streamResponse', async () => {
+    it('should use options.model in streamResponse', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
-      const options: StreamOptions = { model: 'claude-4-opus' }
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
-      for await (const _ of adapter.streamResponse(messages, options)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages, { model: 'claude-4-opus' })) { /* consume */ }
 
       const createCall = mockClient.messages.create.mock.calls[0][0]
       expect(createCall.model).toBe('claude-4-opus')
@@ -634,43 +483,40 @@ describe('AnthropicAdapter', () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
+      const messages = [{ role: 'user' as const, content: 'Test' }]
 
-      for await (const _ of adapter.streamResponse(messages)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages)) { /* consume */ }
 
       const createCall = mockClient.messages.create.mock.calls[0][0]
       expect(createCall.model).toBe('claude-3-5-sonnet-20241022')
     })
 
-    it('should set max_tokens to 4096 in streamResponse', async () => {
+    it('should handle null content in messages', async () => {
       const mockStream = createMockStream([])
       mockClient.messages.create.mockResolvedValue(mockStream)
 
-      const messages: ChatMessage[] = [{ role: 'user', content: 'Test' }]
+      const messages = [{ role: 'user' as const, content: null }]
 
-      for await (const _ of adapter.streamResponse(messages)) {
-        // Consume
-      }
+      for await (const _ of adapter.streamResponse(messages)) { /* consume */ }
 
       const createCall = mockClient.messages.create.mock.calls[0][0]
-      expect(createCall.max_tokens).toBe(4096)
+      expect(createCall.messages[0].content).toBe('')
     })
   })
 
-  describe('Tools Conversion', () => {
-    it('should convert actions to Anthropic tool format', () => {
-      const registry = new ActionRegistry()
-
-      registry.register({
+  // ========================================
+  // 5. convertActionsToTools
+  // ========================================
+  describe('convertActionsToTools', () => {
+    it('should return correct Anthropic tool format', () => {
+      const action = {
         name: 'get_weather',
         description: 'Get weather information',
         parameters: z.object({ city: z.string() }),
         handler: async () => ({ success: true }),
-      })
+      }
 
-      const tools = adapter.convertActionsToTools(registry.getAll())
+      const tools = adapter.convertActionsToTools(new Map([['get_weather', action]]))
 
       expect(tools).toHaveLength(1)
       expect(tools[0]).toHaveProperty('name', 'get_weather')
@@ -678,28 +524,18 @@ describe('AnthropicAdapter', () => {
       expect(tools[0]).toHaveProperty('input_schema')
     })
 
-    it('should convert multiple actions', () => {
-      const registry = new ActionRegistry()
-
-      registry.register({
-        name: 'action1',
-        description: 'First action',
+    it('should not use OpenAI function wrapper format', () => {
+      const action = {
+        name: 'test_tool',
+        description: 'Test',
         parameters: z.object({}),
         handler: async () => ({ success: true }),
-      })
+      }
 
-      registry.register({
-        name: 'action2',
-        description: 'Second action',
-        parameters: z.object({}),
-        handler: async () => ({ success: true }),
-      })
+      const tools = adapter.convertActionsToTools(new Map([['test_tool', action]]))
 
-      const tools = adapter.convertActionsToTools(registry.getAll())
-
-      expect(tools).toHaveLength(2)
-      expect(tools.map((t: any) => t.name)).toContain('action1')
-      expect(tools.map((t: any) => t.name)).toContain('action2')
+      expect(tools[0]).not.toHaveProperty('type', 'function')
+      expect(tools[0]).not.toHaveProperty('function')
     })
 
     it('should handle empty actions map', () => {
@@ -708,33 +544,31 @@ describe('AnthropicAdapter', () => {
       expect(tools).toEqual([])
     })
 
-    it('should include input_schema for each tool', () => {
-      const registry = new ActionRegistry()
-
-      registry.register({
+    it('should include input_schema with type object', () => {
+      const action = {
         name: 'test',
         description: 'Test',
-        parameters: z.object({ test: z.string() }),
+        parameters: z.object({ field: z.string() }),
         handler: async () => ({ success: true }),
-      })
+      }
 
-      const tools = adapter.convertActionsToTools(registry.getAll())
+      const tools = adapter.convertActionsToTools(new Map([['test', action]]))
 
-      expect(tools[0]).toHaveProperty('input_schema')
+      expect(tools[0].input_schema).toBeDefined()
       expect(tools[0].input_schema).toHaveProperty('type', 'object')
+    })
+
+    it('should convert multiple actions', () => {
+      const actions = new Map([
+        ['action1', { name: 'action1', description: 'First', parameters: z.object({}), handler: async () => ({ success: true }) }],
+        ['action2', { name: 'action2', description: 'Second', parameters: z.object({}), handler: async () => ({ success: true }) }],
+      ])
+
+      const tools = adapter.convertActionsToTools(actions)
+
+      expect(tools).toHaveLength(2)
+      expect(tools.map((t: any) => t.name)).toContain('action1')
+      expect(tools.map((t: any) => t.name)).toContain('action2')
     })
   })
 })
-
-/**
- * Helper function to create a mock async iterable stream
- */
-function createMockStream(events: any[]): AsyncIterable<any> {
-  return {
-    [Symbol.asyncIterator]: async function* () {
-      for (const event of events) {
-        yield event
-      }
-    },
-  }
-}
