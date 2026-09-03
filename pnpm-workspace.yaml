@@ -3,8 +3,13 @@
 # See: https://pnpm.io/pnpm-workspace_yaml
 
 packages:
+  # Core protocol package (root)
+  - '.'
+
   # Framework-specific packages (React, Vue, Angular)
   - 'packages/*'
 
   # Example applications demonstrating package usage
   - 'examples/*'
+allowBuilds:
+  esbuild: true
