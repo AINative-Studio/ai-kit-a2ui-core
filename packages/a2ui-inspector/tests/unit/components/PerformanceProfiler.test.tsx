@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react'
 import { PerformanceProfiler } from '@/panel/components/PerformanceProfiler'
 import { PerformanceTracker } from '@/shared/utils/PerformanceTracker'
 import type { PerformanceData } from '@/shared/types'
@@ -39,6 +39,11 @@ describe('PerformanceProfiler', () => {
 
   afterEach(() => {
     cleanup()
+    // Without this, vi.spyOn(document, 'createElement').mockReturnValue(...)
+    // in the export tests below leaks into every later test in this file —
+    // render() then calls the mocked createElement instead of a real one,
+    // and appendChild throws "parameter 1 is not of type Node".
+    vi.restoreAllMocks()
   })
 
   describe('Component Rendering', () => {
@@ -76,11 +81,16 @@ describe('PerformanceProfiler', () => {
     it('should display message latency statistics', () => {
       render(<PerformanceProfiler data={performanceData} />)
 
-      // Should show average, min, max (text may be in separate elements)
-      expect(screen.getByText('Avg')).toBeInTheDocument()
-      expect(screen.getByText('150.00 ms')).toBeInTheDocument()
-      expect(screen.getByText('100.00 ms')).toBeInTheDocument()
-      expect(screen.getByText('200.00 ms')).toBeInTheDocument()
+      // Multiple cards reuse the same "Avg"/"Min"/"Max" labels, and the
+      // latency chart's SVG point tooltips also render the same "X.XX ms"
+      // text as the stat cards — so assert presence via getAllByText
+      // rather than requiring a single unique match.
+      const card = screen.getByText('Message Latency').closest('div')!
+      const scoped = within(card)
+      expect(scoped.getByText('Avg')).toBeInTheDocument()
+      expect(scoped.getAllByText('150.00 ms').length).toBeGreaterThan(0)
+      expect(scoped.getAllByText('100.00 ms').length).toBeGreaterThan(0)
+      expect(scoped.getAllByText('200.00 ms').length).toBeGreaterThan(0)
     })
 
     it('should display percentile metrics (p50, p95, p99)', () => {
@@ -144,9 +154,12 @@ describe('PerformanceProfiler', () => {
     it('should display memory statistics in MB', () => {
       render(<PerformanceProfiler data={performanceData} />)
 
-      // Should show memory in MB (text may be in separate elements)
+      // With seeded values of 50MB and 60MB, "Current" (latest) and "Peak"
+      // (max) both render "60.00 MB" — scope to the Current stat block to
+      // avoid an ambiguous getByText match.
       expect(screen.getByText('Current')).toBeInTheDocument()
-      expect(screen.getByText('60.00 MB')).toBeInTheDocument()
+      const currentStat = screen.getByText('Current').closest('div')!
+      expect(within(currentStat).getByText('60.00 MB')).toBeInTheDocument()
     })
 
     it('should render memory usage chart over time', () => {
@@ -160,6 +173,34 @@ describe('PerformanceProfiler', () => {
       const trend = screen.getByTestId('memory-trend')
       expect(trend).toBeInTheDocument()
       expect(trend).toHaveAttribute('data-trend', 'increasing')
+    })
+
+    it('should show a decreasing trend when memory usage drops', () => {
+      const decreasingTracker = new PerformanceTracker()
+      decreasingTracker.trackMemoryUsage(1024 * 1024 * 60)
+      decreasingTracker.trackMemoryUsage(1024 * 1024 * 40)
+      const decreasingData: PerformanceData = {
+        ...performanceData,
+        memoryUsage: decreasingTracker.getMemoryUsageMetrics()
+      }
+
+      render(<PerformanceProfiler data={decreasingData} />)
+      const trend = screen.getByTestId('memory-trend')
+      expect(trend).toHaveAttribute('data-trend', 'decreasing')
+    })
+
+    it('should show a stable trend when memory usage barely changes', () => {
+      const stableTracker = new PerformanceTracker()
+      stableTracker.trackMemoryUsage(1024 * 1024 * 50)
+      stableTracker.trackMemoryUsage(1024 * 1024 * 51)
+      const stableData: PerformanceData = {
+        ...performanceData,
+        memoryUsage: stableTracker.getMemoryUsageMetrics()
+      }
+
+      render(<PerformanceProfiler data={stableData} />)
+      const trend = screen.getByTestId('memory-trend')
+      expect(trend).toHaveAttribute('data-trend', 'stable')
     })
 
     it('should warn on high memory usage (>100MB)', () => {
@@ -180,10 +221,14 @@ describe('PerformanceProfiler', () => {
     })
 
     it('should show connection uptime percentage', () => {
-      const { container } = render(<PerformanceProfiler data={performanceData} />)
+      render(<PerformanceProfiler data={performanceData} />)
       expect(screen.getByText('Uptime')).toBeInTheDocument()
-      // Uptime percentage should be visible
-      const uptimeValue = container.querySelector('.value')
+      // Uptime percentage should be visible next to the "Uptime" label.
+      // CSS Modules hash class names at build time (e.g. "_value_2762dd"),
+      // so a literal ".value" selector never matches — use the label's
+      // sibling instead.
+      const uptimeStat = screen.getByText('Uptime').closest('div')!
+      const uptimeValue = within(uptimeStat).getByText(/%/)
       expect(uptimeValue).toBeInTheDocument()
     })
 
@@ -241,9 +286,17 @@ describe('PerformanceProfiler', () => {
     })
 
     it('should include timestamp in exported filename', async () => {
-      const createElementSpy = vi.spyOn(document, 'createElement')
+      const originalCreateElement = document.createElement.bind(document)
       const mockAnchor = { click: vi.fn(), download: '', href: '' }
-      createElementSpy.mockReturnValue(mockAnchor as unknown as HTMLElement)
+      // Only intercept the 'a' tag the export handler creates — mocking
+      // every createElement call breaks React's own DOM rendering, since
+      // it uses document.createElement internally too.
+      vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+        if (tagName === 'a') {
+          return mockAnchor as unknown as HTMLElement
+        }
+        return originalCreateElement(tagName)
+      })
 
       render(<PerformanceProfiler data={performanceData} />)
 
@@ -277,7 +330,8 @@ describe('PerformanceProfiler', () => {
     it('should update charts when data changes', () => {
       const { rerender } = render(<PerformanceProfiler data={performanceData} />)
 
-      expect(screen.getByText('150.00 ms')).toBeInTheDocument()
+      const latencyCard = () => screen.getByText('Message Latency').closest('div')!
+      expect(within(latencyCard()).getAllByText('150.00 ms').length).toBeGreaterThan(0)
 
       // Add more latency data
       tracker.trackMessageLatency(300)
@@ -289,7 +343,7 @@ describe('PerformanceProfiler', () => {
       rerender(<PerformanceProfiler data={newData} />)
 
       // Average should increase (150 + 150 + 200 + 300) / 4 = 187.5
-      expect(screen.getByText('187.50 ms')).toBeInTheDocument()
+      expect(within(latencyCard()).getAllByText('187.50 ms').length).toBeGreaterThan(0)
     })
 
     it('should refresh connection status on data update', () => {

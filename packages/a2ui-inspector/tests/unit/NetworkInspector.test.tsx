@@ -158,6 +158,43 @@ describe('NetworkInspector', () => {
       const timeline = screen.getByText(/reconnection attempts/i).parentElement
       expect(timeline).toHaveTextContent('Attempt 1')
     })
+
+    it('should show seconds ago for a very recent connection', () => {
+      const dataJustConnected: NetworkData = {
+        ...mockNetworkData,
+        lastConnected: Date.now() - 5000
+      }
+
+      render(<NetworkInspector networkData={dataJustConnected} />)
+
+      expect(screen.getByText(/5s ago/i)).toBeInTheDocument()
+    })
+
+    it('should show hours ago and hour-scale uptime for an older connection', () => {
+      const dataConnectedHoursAgo: NetworkData = {
+        ...mockNetworkData,
+        lastConnected: Date.now() - 2 * 60 * 60 * 1000
+      }
+
+      render(<NetworkInspector networkData={dataConnectedHoursAgo} />)
+
+      expect(screen.getByText(/2h ago/i)).toBeInTheDocument()
+      const uptimeMetric = screen.getByText(/uptime/i).parentElement
+      expect(uptimeMetric).toHaveTextContent('2h')
+    })
+
+    it('should show days ago and day-scale uptime for a very old connection', () => {
+      const dataConnectedDaysAgo: NetworkData = {
+        ...mockNetworkData,
+        lastConnected: Date.now() - 3 * 24 * 60 * 60 * 1000
+      }
+
+      render(<NetworkInspector networkData={dataConnectedDaysAgo} />)
+
+      expect(screen.getByText(/3d ago/i)).toBeInTheDocument()
+      const uptimeMetric = screen.getByText(/uptime/i).parentElement
+      expect(uptimeMetric).toHaveTextContent('3d')
+    })
   })
 
   describe('message queue', () => {
@@ -353,6 +390,37 @@ describe('NetworkInspector', () => {
       render(<NetworkInspector networkData={dataWithoutHistory} />)
 
       expect(screen.getByText(/no data available/i)).toBeInTheDocument()
+    })
+
+    it('should format zero bandwidth as 0 B', () => {
+      const dataWithZeroBandwidth: NetworkData = {
+        ...mockNetworkData,
+        bandwidth: {
+          sent: 0,
+          received: 100,
+          history: mockNetworkData.bandwidth.history
+        }
+      }
+
+      render(<NetworkInspector networkData={dataWithZeroBandwidth} />)
+
+      expect(screen.getByText('0 B')).toBeInTheDocument()
+    })
+
+    it('should format sub-kilobyte bandwidth in plain bytes', () => {
+      const dataWithSmallBandwidth: NetworkData = {
+        ...mockNetworkData,
+        bandwidth: {
+          sent: 512,
+          received: 100,
+          history: mockNetworkData.bandwidth.history
+        }
+      }
+
+      render(<NetworkInspector networkData={dataWithSmallBandwidth} />)
+
+      expect(screen.getByText('512 B')).toBeInTheDocument()
+      expect(screen.getByText('100 B')).toBeInTheDocument()
     })
 
     it('should format large bandwidth values correctly', () => {

@@ -35,6 +35,7 @@ export interface StateNode {
 
 export interface StateChange {
   timestamp: number
+  path: string
   oldValue: unknown
   newValue: unknown
   operation: 'add' | 'replace' | 'remove'

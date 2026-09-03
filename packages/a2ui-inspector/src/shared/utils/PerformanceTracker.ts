@@ -198,6 +198,10 @@ export class PerformanceTracker {
 
     return {
       avg: sum / values.length,
+      // The `?? 0` fallbacks below are unreachable: the metrics.length === 0
+      // guard above already returns early, so `values` always has at least
+      // one element here.
+      /* v8 ignore next 2 */
       min: values[0] ?? 0,
       max: values[values.length - 1] ?? 0,
       p50: this.percentile(values, 0.5),
@@ -244,6 +248,7 @@ export class PerformanceTracker {
     const sum = values.reduce((acc, val) => acc + val, 0)
 
     return {
+      /* v8 ignore next -- unreachable: see the min/max note above. */
       current: values[values.length - 1] ?? 0,
       peak: Math.max(...values),
       avg: sum / values.length
@@ -257,6 +262,9 @@ export class PerformanceTracker {
     if (sortedValues.length === 0) return 0
 
     const index = Math.ceil(sortedValues.length * p) - 1
+    // For any length >= 1 and p > 0, index is always >= 0, so the
+    // Math.max(0, index) floor and the `?? 0` fallback are unreachable.
+    /* v8 ignore next */
     return sortedValues[Math.max(0, index)] ?? 0
   }
 

@@ -68,8 +68,11 @@ export function ActionTracer({ actions, onClear, onExport }: ActionTracerProps):
       case 'completed':
         return styles.completed ?? ''
       case 'failed':
+        /* v8 ignore next -- styles.failed is only undefined if the CSS
+         * module fails to load, not a real runtime code path. */
         return styles.failed ?? ''
       case 'started':
+        /* v8 ignore next -- see 'failed' above */
         return styles.started ?? ''
       default:
         return ''

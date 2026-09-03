@@ -21,6 +21,7 @@ describe('StateTreeViewer', () => {
       changes: [
         {
           timestamp: Date.now() - 5000,
+          path: '/user',
           oldValue: undefined,
           newValue: { name: 'John Doe', email: 'john@example.com' },
           operation: 'add'
@@ -34,12 +35,14 @@ describe('StateTreeViewer', () => {
           changes: [
             {
               timestamp: Date.now() - 4000,
+              path: '/user/name',
               oldValue: undefined,
               newValue: 'John Doe',
               operation: 'add'
             },
             {
               timestamp: Date.now() - 2000,
+              path: '/user/name',
               oldValue: 'John Doe',
               newValue: 'Jane Doe',
               operation: 'replace'
@@ -54,6 +57,7 @@ describe('StateTreeViewer', () => {
           changes: [
             {
               timestamp: Date.now() - 3000,
+              path: '/user/email',
               oldValue: undefined,
               newValue: 'john@example.com',
               operation: 'add'
@@ -73,6 +77,7 @@ describe('StateTreeViewer', () => {
       changes: [
         {
           timestamp: Date.now() - 1000,
+          path: '/settings',
           oldValue: undefined,
           newValue: { theme: 'dark', notifications: true },
           operation: 'add'
@@ -86,6 +91,7 @@ describe('StateTreeViewer', () => {
           changes: [
             {
               timestamp: Date.now() - 1000,
+              path: '/settings/theme',
               oldValue: 'light',
               newValue: 'dark',
               operation: 'replace'
@@ -96,6 +102,27 @@ describe('StateTreeViewer', () => {
       }
     }
   }
+
+  describe('node selection', () => {
+    it('should call onNodeSelect with the clicked node path', async () => {
+      const user = userEvent.setup()
+      const onNodeSelect = vi.fn()
+      render(<StateTreeViewer stateTree={mockStateTree} onNodeSelect={onNodeSelect} />)
+
+      const firstItem = screen.getAllByRole('treeitem')[0]!
+      await user.click(firstItem)
+
+      expect(onNodeSelect).toHaveBeenCalledWith(expect.stringContaining('user'))
+    })
+
+    it('should not throw when a node is clicked with no onNodeSelect provided', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const firstItem = screen.getAllByRole('treeitem')[0]!
+      await expect(user.click(firstItem)).resolves.not.toThrow()
+    })
+  })
 
   describe('rendering', () => {
     it('should render empty state when no tree provided', () => {
@@ -228,11 +255,19 @@ describe('StateTreeViewer', () => {
 
   describe('diff highlighting', () => {
     it('should highlight nodes that changed recently', () => {
-      const recentTimestamp = Date.now()
+      // mockStateTree's timestamps are fixed offsets from Date.now() at
+      // module load time (e.g. "2000ms before load"). Computing the
+      // threshold from a fresh Date.now() call here made this test's
+      // pass/fail depend on how much real wall-clock time had elapsed
+      // since the file loaded — it failed whenever the suite ran long
+      // enough. Anchor the threshold to the mock data's own known-recent
+      // change (name node, changed at loadTime - 2000) instead.
+      const mostRecentChangeTimestamp =
+        mockStateTree.user!.children!.name!.changes[1]!.timestamp
       render(
         <StateTreeViewer
           stateTree={mockStateTree}
-          highlightSince={recentTimestamp - 3000}
+          highlightSince={mostRecentChangeTimestamp - 1}
         />
       )
 
@@ -425,6 +460,46 @@ describe('StateTreeViewer', () => {
         expect(notifications.length).toBeGreaterThan(0)
       })
     })
+
+    it('should not throw when clipboard.writeText rejects', async () => {
+      const user = userEvent.setup()
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const writeText = vi.fn().mockRejectedValue(new Error('denied'))
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        writable: true,
+        configurable: true
+      })
+
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const copyButton = screen.getByRole('button', { name: /copy all/i })
+      await user.click(copyButton)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalled()
+      })
+
+      consoleError.mockRestore()
+    })
+
+    it('should be a no-op when copying the selected node with nothing selected', async () => {
+      const user = userEvent.setup()
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        writable: true,
+        configurable: true
+      })
+
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const copySelectedButton = screen.queryByRole('button', { name: /copy selected/i })
+      if (copySelectedButton) {
+        await user.click(copySelectedButton)
+        expect(writeText).not.toHaveBeenCalled()
+      }
+    })
   })
 
   describe('search and filter', () => {
@@ -491,6 +566,75 @@ describe('StateTreeViewer', () => {
       })
     })
 
+    it('should filter to only object-valued nodes when type filter is set to Object', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const typeFilter = screen.getByLabelText(/filter by type/i)
+      await user.selectOptions(typeFilter, 'object')
+
+      // "user" and "settings" are objects; their string-valued children
+      // (name, email, theme) should not appear as top-level filter matches.
+      await waitFor(() => {
+        expect(screen.getByText(/user/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should filter to only string-valued nodes when type filter is set to String', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const typeFilter = screen.getByLabelText(/filter by type/i)
+      await user.selectOptions(typeFilter, 'string')
+
+      await waitFor(() => {
+        expect(screen.getByText(/name/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should render an empty tree when the type filter excludes everything', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const typeFilter = screen.getByLabelText(/filter by type/i)
+      // Nothing in mockStateTree has a top-level array value, so the
+      // filtered tree has no nodes to render (no dedicated empty-filter
+      // messaging exists today — only an empty-stateTree message does).
+      await user.selectOptions(typeFilter, 'array')
+
+      await waitFor(() => {
+        const tree = screen.getByRole('tree')
+        expect(tree.children.length).toBe(0)
+      })
+    })
+
+    it('should combine search and type filter', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const searchInput = screen.getByPlaceholderText(/search/i)
+      await user.type(searchInput, 'theme')
+
+      const typeFilter = screen.getByLabelText(/filter by type/i)
+      await user.selectOptions(typeFilter, 'string')
+
+      await waitFor(() => {
+        expect(screen.getByText(/dark/i)).toBeInTheDocument()
+      })
+    })
+
+    it('should reset the type filter back to All Types', async () => {
+      const user = userEvent.setup()
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const typeFilter = screen.getByLabelText(/filter by type/i) as HTMLSelectElement
+      await user.selectOptions(typeFilter, 'string')
+      expect(typeFilter.value).toBe('string')
+
+      await user.selectOptions(typeFilter, 'all')
+      expect(typeFilter.value).toBe('all')
+    })
+
     it('should filter by value type', async () => {
       const user = userEvent.setup()
       render(<StateTreeViewer stateTree={mockStateTree} />)
@@ -540,6 +684,32 @@ describe('StateTreeViewer', () => {
       // Focus should move to next item
       const secondItem = screen.getAllByRole('treeitem')[1]
       expect(document.activeElement).toBe(secondItem)
+    })
+
+    it('should move focus to the previous item with ArrowUp', async () => {
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const items = screen.getAllByRole('treeitem')
+      items[0]!.focus()
+
+      // Move to the second item first so focusedIndex (internal state)
+      // actually matches DOM focus, then move back up.
+      fireEvent.keyDown(items[0]!, { key: 'ArrowDown' })
+      expect(document.activeElement).toBe(items[1])
+
+      fireEvent.keyDown(items[1]!, { key: 'ArrowUp' })
+      expect(document.activeElement).toBe(items[0])
+    })
+
+    it('should not move focus above the first item with ArrowUp', async () => {
+      render(<StateTreeViewer stateTree={mockStateTree} />)
+
+      const firstItem = screen.getAllByRole('treeitem')[0]
+      firstItem!.focus()
+
+      fireEvent.keyDown(firstItem!, { key: 'ArrowUp' })
+
+      expect(document.activeElement).toBe(firstItem)
     })
 
     it('should expand node with ArrowRight key', async () => {

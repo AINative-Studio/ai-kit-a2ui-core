@@ -48,6 +48,14 @@ describe('StateTree', () => {
       expect(node).toBeUndefined()
     })
 
+    it('should be a no-op when removing a path whose parent does not exist', () => {
+      expect(() => {
+        stateTree.updateState('/does/not/exist', undefined, 'remove')
+      }).not.toThrow()
+
+      expect(stateTree.getNode('/does')).toBeUndefined()
+    })
+
     it('should create parent nodes automatically', () => {
       stateTree.updateState('/a/b/c/d', 'value', 'add')
 
@@ -121,15 +129,27 @@ describe('StateTree', () => {
     })
 
     it('should return changes since timestamp', () => {
-      const beforeTime = Date.now()
+      vi.useFakeTimers()
+      try {
+        const beforeTime = Date.now()
+        stateTree.updateState('/user/name', 'John', 'add')
 
-      stateTree.updateState('/user/name', 'John', 'add')
+        // Advance real clock time so the second update gets a strictly
+        // later timestamp than afterTime — Date.now()'s millisecond
+        // resolution can't otherwise guarantee two synchronous calls
+        // produce distinct values.
+        vi.advanceTimersByTime(10)
+        const afterTime = Date.now()
 
-      const afterTime = Date.now()
-      stateTree.updateState('/user/age', 30, 'add')
+        vi.advanceTimersByTime(10)
+        stateTree.updateState('/user/age', 30, 'add')
 
-      const diff = stateTree.getDiff(afterTime)
-      expect(diff.length).toBeGreaterThan(0)
+        const diff = stateTree.getDiff(afterTime)
+        expect(diff.length).toBeGreaterThan(0)
+        expect(diff[0]?.timestamp).toBeGreaterThan(beforeTime)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('should include path and operation in diff', () => {

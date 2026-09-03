@@ -35,6 +35,8 @@ export class StateTree {
           children: {}
         }
       }
+      /* v8 ignore next -- unreachable: nodes here are always constructed
+       * with children: {} a few lines above, so it's never undefined. */
       current = current[segment]!.children ?? {}
     }
 
@@ -45,6 +47,7 @@ export class StateTree {
 
     const change: StateChange = {
       timestamp,
+      path,
       oldValue: existingNode?.value,
       newValue: value,
       operation
@@ -136,8 +139,20 @@ export class StateTree {
    * Export state as JSON
    */
   exportState(): string {
-    const serializable = this.makeSerializable(this.root)
-    return JSON.stringify(serializable, null, 2)
+    const seen = new WeakSet()
+    return JSON.stringify(
+      this.root,
+      (_key, value) => {
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            return '[Circular]'
+          }
+          seen.add(value)
+        }
+        return value
+      },
+      2
+    )
   }
 
   /**
@@ -215,28 +230,5 @@ export class StateTree {
         this.collectPaths(node.children, path, result)
       }
     }
-  }
-
-  /**
-   * Make tree serializable by removing circular references
-   */
-  private makeSerializable(tree: StateTreeType): Record<string, unknown> {
-    const seen = new WeakSet()
-    const result: Record<string, unknown> = {}
-
-    for (const [key, node] of Object.entries(tree)) {
-      if (typeof node.value === 'object' && node.value !== null) {
-        if (seen.has(node.value)) {
-          result[key] = '[Circular]'
-        } else {
-          seen.add(node.value)
-          result[key] = node.value
-        }
-      } else {
-        result[key] = node.value
-      }
-    }
-
-    return result
   }
 }

@@ -200,6 +200,28 @@ describe('MessageInspector', () => {
       expect(screen.getByText(/Test Surface/i)).toBeInTheDocument()
     })
 
+    it('should select a message with the Space key', () => {
+      const { container } = render(<MessageInspector messages={mockMessages} />)
+
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
+      firstMessage.focus()
+
+      fireEvent.keyDown(firstMessage, { key: ' ' })
+      expect(screen.getByText(/Test Surface/i)).toBeInTheDocument()
+    })
+
+    it('should ignore other keys on a message row', () => {
+      const { container } = render(<MessageInspector messages={mockMessages} />)
+
+      const messageList = container.querySelector('[role="list"][aria-label="Message list"]')
+      const firstMessage = within(messageList as HTMLElement).getByText('createSurface')
+      firstMessage.focus()
+
+      fireEvent.keyDown(firstMessage, { key: 'Tab' })
+      expect(screen.queryByText(/Test Surface/i)).not.toBeInTheDocument()
+    })
+
     it('should have proper ARIA labels', () => {
       render(<MessageInspector messages={mockMessages} />)
 

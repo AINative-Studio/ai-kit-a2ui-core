@@ -14,6 +14,16 @@ describe('MessageCapture', () => {
   })
 
   describe('captureMessage', () => {
+    it('should record "unknown" as the type for a message with no type field', () => {
+      const captured = capture.captureMessage({ foo: 'bar' }, 'received')
+      expect(captured.messageType).toBe('unknown')
+    })
+
+    it('should record "unknown" as the type for a non-object message', () => {
+      const captured = capture.captureMessage('not an object', 'received')
+      expect(captured.messageType).toBe('unknown')
+    })
+
     it('should capture a message with unique ID', () => {
       const message = {
         type: 'createSurface' as const,
@@ -137,7 +147,7 @@ describe('MessageCapture', () => {
 
     it('should filter by search term in message content', () => {
       const filter: MessageFilter = {
-        searchTerm: 'test-surface'
+        searchTerm: 'createSurface'
       }
 
       const filtered = capture.filterMessages(filter)
@@ -209,6 +219,17 @@ describe('MessageCapture', () => {
   })
 
   describe('setMaxMessages', () => {
+    it('should immediately trim existing messages when the new max is lower', () => {
+      capture.captureMessage({ type: 'ping' as const }, 'sent')
+      capture.captureMessage({ type: 'pong' as const }, 'received')
+      capture.captureMessage({ type: 'ping' as const }, 'sent')
+      expect(capture.getMessages()).toHaveLength(3)
+
+      capture.setMaxMessages(1)
+
+      expect(capture.getMessages()).toHaveLength(1)
+    })
+
     it('should limit stored messages to max count', () => {
       capture.setMaxMessages(2)
 

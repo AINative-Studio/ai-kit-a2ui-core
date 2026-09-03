@@ -147,11 +147,6 @@ export function StateTreeViewer({
           result[key] = childrenMatch
             ? { ...node, children: filteredChildren }
             : node
-
-          // Auto-expand matching nodes
-          if (debouncedSearch && searchMatch) {
-            setExpandedPaths(prev => new Set(prev).add(nodePath))
-          }
         }
       })
 
@@ -163,6 +158,29 @@ export function StateTreeViewer({
       matchedPaths: matches
     }
   }, [stateAtTimestamp, debouncedSearch, valueFilter])
+
+  // Auto-expand nodes that match the active search or type filter, so
+  // results are visible without the user manually expanding every parent.
+  // This runs as an effect (not inside the useMemo above) so it only fires
+  // when the set of matches actually changes — calling setState
+  // unconditionally during the memo's computation caused every render to
+  // produce a new Set reference, which triggered another render, forever.
+  useEffect(() => {
+    const hasActiveFilter = Boolean(debouncedSearch) || valueFilter !== 'all'
+    if (!hasActiveFilter || matchedPaths.size === 0) return
+
+    setExpandedPaths(prev => {
+      let changed = false
+      const next = new Set(prev)
+      matchedPaths.forEach(path => {
+        if (!next.has(path)) {
+          next.add(path)
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [debouncedSearch, valueFilter, matchedPaths])
 
   // Flatten tree for keyboard navigation and virtualization
   const flattenedTree = useMemo(() => {
