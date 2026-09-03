@@ -27,6 +27,11 @@
 // Context provider and context accessor
 export { A2UIProvider, A2UIContext, useA2UIContext } from './context/index.js'
 
+// Pre-built components
+export { A2UIChat } from './components/A2UIChat.js'
+export { A2UIPopup } from './components/A2UIPopup.js'
+export { A2UISidebar } from './components/A2UISidebar.js'
+
 // Hooks
 export { useA2UI } from './hooks/useA2UI.js'
 export { useA2UIAgent } from './hooks/useA2UIAgent.js'
@@ -94,3 +99,11 @@ export type {
   CoAgentOptions,
   CoAgentHook,
 } from './types/coagent.js'
+
+// Pre-built component types
+export type {
+  Message,
+  A2UIChatProps,
+  A2UIPopupProps,
+  A2UISidebarProps,
+} from './types/components.js'

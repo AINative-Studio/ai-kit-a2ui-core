@@ -5,10 +5,28 @@ React bindings and components for A2UI Core - Type-safe, headless, and framework
 ## Installation
 
 ```bash
-npm install @ainative/a2ui-react
+npm install @ainative/a2ui-react react react-dom
 ```
 
 ## Quick Start
+
+### Pre-built Components
+
+Production-ready chat interfaces with CSS Modules (no global style pollution), dark mode, and WCAG 2.1 AA accessibility.
+
+```tsx
+import { A2UIChat, A2UIPopup, A2UISidebar } from '@ainative/a2ui-react'
+import type { Message } from '@ainative/a2ui-react'
+
+// Full chat interface
+<A2UIChat messages={messages} onMessage={handleMessage} theme="dark" />
+
+// Floating popup launcher
+<A2UIPopup position="bottom-right" chatProps={{ onMessage: handleMessage }} />
+
+// Docked sidebar panel
+<A2UISidebar position="right" mode="overlay" chatProps={{ onMessage: handleMessage }} />
+```
 
 ### Headless Hooks
 
@@ -135,43 +153,37 @@ npm run lint
 
 ### Completed
 - [x] Package structure
-- [x] Storybook 8.x configuration
+- [x] Storybook 7.x configuration
 - [x] Design system with CSS tokens
-- [x] Headless hooks (useCoAgent, useA2UIAgent, useHumanInTheLoop)
+- [x] Headless hooks (useCoAgent, useA2UIAgent, useA2UIAction, useA2UIState, useHumanInTheLoop)
+- [x] Pre-built components (A2UIChat, A2UIPopup, A2UISidebar)
 - [x] TypeScript strict mode
-- [x] Accessibility addon enabled
+- [x] Accessibility addon enabled + jest-axe tests
 - [x] Dark mode support configured
 
 ### TODO
-- [ ] A2UIChat component implementation
-- [ ] A2UIPopup component implementation
-- [ ] A2UISidebar component implementation
-- [ ] Comprehensive test suite (85%+ coverage)
-- [ ] Complete Storybook stories for all components
-- [ ] Production build and deployment
+- [ ] Verify 90%+ coverage after workspace install (see root `pnpm install`)
+- [ ] Publish v1.0.0 to npm
 
-## Component Implementation Guide
+## Component Guidelines
 
-Each component should follow this pattern:
-
-### 1. Component Structure
+New components under `src/components/` should follow the pattern used by `A2UIChat`/`A2UIPopup`/`A2UISidebar`:
 
 ```
-src/components/ComponentName/
-├── ComponentName.tsx        # Component implementation
-├── ComponentName.module.css # Scoped CSS (NO global styles)
-├── ComponentName.test.tsx   # Tests (85%+ coverage)
-└── ComponentName.stories.tsx # Storybook stories
+src/components/ComponentName.tsx        # Component implementation
+src/components/ComponentName.module.css # Scoped CSS (NO global styles)
+tests/components/ComponentName.test.tsx # Tests (90%+ coverage)
+stories/ComponentName.stories.tsx       # Storybook stories
 ```
 
-### 2. TypeScript Requirements
+### TypeScript Requirements
 
 - Strict mode enabled (no 'any' types)
 - Full type safety for props
 - JSDoc documentation
 - Exported type definitions
 
-### 3. Accessibility Checklist
+### Accessibility Checklist
 
 - [ ] Keyboard navigation (Tab, Enter, ESC)
 - [ ] ARIA labels and roles
@@ -181,15 +193,15 @@ src/components/ComponentName/
 - [ ] Focus indicators visible
 - [ ] jest-axe tests passing
 
-### 4. Test Requirements
+### Test Requirements
 
 - [ ] Rendering tests
 - [ ] User interaction tests
 - [ ] Accessibility tests
 - [ ] Edge case handling
-- [ ] 85%+ coverage (statements, branches, functions, lines)
+- [ ] 90%+ coverage (statements, branches, functions, lines)
 
-### 5. Storybook Stories
+### Storybook Stories
 
 Each component needs:
 - Default story
