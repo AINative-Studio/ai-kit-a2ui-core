@@ -110,16 +110,21 @@ export class A2UIRuntime {
    * @param request - Runtime request
    * @returns Async iterator of response chunks
    */
-  async *stream(request: RuntimeRequest): AsyncIterator<string> {
+  async *stream(request: RuntimeRequest): AsyncGenerator<string> {
     // Execute middleware pipeline
     await this.middleware(request.context, async () => {})
 
-    // Stream using adapter
-    yield* this.adapter.generateUI(
+    // Stream using adapter. `for await` rather than `yield*`, since the
+    // adapter interface is typed as AsyncIterable (not AsyncGenerator) and
+    // `yield*` delegation against a plain AsyncIterable conflicts with this
+    // generator's inferred `next()` parameter type.
+    for await (const chunk of this.adapter.generateUI(
       request.prompt,
       request.context,
       request.options
-    )
+    )) {
+      yield chunk
+    }
   }
 
   /**

@@ -33,7 +33,7 @@ export class ActionExecutionError extends RuntimeError {
   constructor(
     message: string,
     public actionName: string,
-    details?: unknown
+    details?: Record<string, unknown>
   ) {
     super(message, 'ACTION_EXECUTION_ERROR', { actionName, ...details })
     this.name = 'ActionExecutionError'
@@ -47,7 +47,7 @@ export class ValidationError extends RuntimeError {
   constructor(
     message: string,
     public field?: string,
-    details?: unknown
+    details?: Record<string, unknown>
   ) {
     super(message, 'VALIDATION_ERROR', { field, ...details })
     this.name = 'ValidationError'

@@ -43,7 +43,7 @@ export class AnthropicAdapter extends LLMAdapter {
     prompt: string,
     context: RuntimeContext,
     options?: GenerationOptions
-  ): AsyncIterator<string> {
+  ): AsyncGenerator<string> {
     try {
       const stream = await this.client.messages.create({
         model: options?.model || this.defaultModel,

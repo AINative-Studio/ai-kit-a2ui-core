@@ -15,7 +15,7 @@ export abstract class LLMAdapter {
     prompt: string,
     context: RuntimeContext,
     options?: GenerationOptions
-  ): AsyncIterator<string>
+  ): AsyncIterable<string>
 
   /**
    * Execute an action

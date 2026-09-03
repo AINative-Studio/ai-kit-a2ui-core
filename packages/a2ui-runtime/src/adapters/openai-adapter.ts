@@ -1,8 +1,30 @@
 import type OpenAI from 'openai'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import { LLMAdapter } from './llm-adapter'
 import type { RuntimeContext, GenerationOptions, StreamOptions, ChatMessage, ActionResult } from '../types/runtime-types'
 import type { Action } from '../actions/action-registry'
 import { LLMProviderError } from '../errors/runtime-errors'
+
+/**
+ * Convert our framework-agnostic ChatMessage into the OpenAI SDK's
+ * ChatCompletionMessageParam union. Each role has a distinct required shape
+ * (e.g. 'function' requires a string `name`), so this can't be a single
+ * flat object spread across all roles.
+ */
+function toOpenAIMessageParam(msg: ChatMessage): ChatCompletionMessageParam {
+  if (msg.role === 'function') {
+    return {
+      role: 'function',
+      content: msg.content || '',
+      name: msg.name ?? 'unknown',
+    }
+  }
+
+  return {
+    role: msg.role,
+    content: msg.content || '',
+  }
+}
 
 /**
  * OpenAI adapter configuration
@@ -46,7 +68,7 @@ export class OpenAIAdapter extends LLMAdapter {
     prompt: string,
     context: RuntimeContext,
     options?: GenerationOptions
-  ): AsyncIterator<string> {
+  ): AsyncGenerator<string> {
     try {
       const stream = await this.client.chat.completions.create({
         model: options?.model || this.defaultModel,
@@ -108,15 +130,11 @@ export class OpenAIAdapter extends LLMAdapter {
   async *streamResponse(
     messages: ChatMessage[],
     options?: StreamOptions
-  ): AsyncIterator<string> {
+  ): AsyncGenerator<string> {
     try {
       const stream = await this.client.chat.completions.create({
         model: options?.model || this.defaultModel,
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content || '',
-          name: msg.name,
-        })),
+        messages: messages.map(toOpenAIMessageParam),
         stream: true,
       })
 
