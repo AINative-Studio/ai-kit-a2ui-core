@@ -207,6 +207,8 @@ export interface ComponentProperties {
     title?: string
     open: boolean
     onClose?: string
+    /** Action dispatched when the dialog's open state changes */
+    action?: string
   }
   tabs: {
     activeTab?: string
@@ -252,12 +254,15 @@ export interface ComponentProperties {
   }
   dateTimeInput: {
     label?: string
+    placeholder?: string
     value?: string
     type?: 'date' | 'time' | 'datetime'
     dataBinding?: string
     disabled?: boolean
     min?: string
     max?: string
+    /** Action dispatched when a date/time is selected */
+    action?: string
   }
   image: {
     src: string
@@ -265,6 +270,8 @@ export interface ComponentProperties {
     width?: string | number
     height?: string | number
     objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down'
+    /** Render as a circular avatar instead of a plain img */
+    circular?: boolean
   }
   video: {
     src: string
@@ -273,17 +280,23 @@ export interface ComponentProperties {
     autoplay?: boolean
     loop?: boolean
     muted?: boolean
+    /** Container aspect ratio (width / height), defaults to 16:9 */
+    aspectRatio?: number
   }
   audioPlayer: {
     src: string
     controls?: boolean
     autoplay?: boolean
     loop?: boolean
+    /** Display title shown above the player */
+    title?: string
   }
   icon: {
     name: string
     size?: string | number
     color?: string
+    /** Action dispatched on click; renders the icon as a button when set */
+    action?: string
   }
   divider: {
     orientation?: 'horizontal' | 'vertical'
