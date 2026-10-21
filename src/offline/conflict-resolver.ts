@@ -4,12 +4,9 @@
  */
 
 import type {
-  ConflictStrategy,
   ConflictContext,
   ConflictReport,
-  StorageItem,
-  OTOperation,
-  CRDTData
+  StorageItem
 } from '../types/offline-types';
 
 /**

@@ -3,6 +3,11 @@
  */
 
 import type { ZeroDBComponentType } from './zerodb-components.js'
+import type {
+  NotificationCenterProperties,
+  NotificationItemProperties,
+  NotificationBadgeProperties,
+} from './notification-components.js'
 
 /**
  * All standard A2UI component types (36 types including video, file upload, notification, email builder, and ZeroDB components)
@@ -65,7 +70,7 @@ export interface A2UIComponent {
 /**
  * Component with typed properties
  */
-export interface TypedA2UIComponent<T extends ComponentType> extends A2UIComponent {
+export interface TypedA2UIComponent<T extends keyof ComponentProperties> extends A2UIComponent {
   type: T
   properties?: ComponentProperties[T]
 }
@@ -360,4 +365,7 @@ export interface ComponentProperties {
     onUploadComplete?: string
     onUploadError?: string
   }
+  notificationCenter: NotificationCenterProperties
+  notificationItem: NotificationItemProperties
+  notificationBadge: NotificationBadgeProperties
 }

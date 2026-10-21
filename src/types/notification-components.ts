@@ -130,6 +130,7 @@ export interface NotificationCenterProperties {
   categories?: NotificationCategory[]
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -178,6 +179,7 @@ export interface NotificationItemProperties {
   richContent?: NotificationRichContent
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -208,6 +210,7 @@ export interface NotificationBadgeProperties {
   pulse?: boolean
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**

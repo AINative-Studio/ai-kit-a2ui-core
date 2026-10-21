@@ -430,180 +430,180 @@ export function validateCollaborationMessage(msg: unknown): {
 
   const message = msg as Record<string, unknown>
 
-  if (!message.type || typeof message.type !== 'string') {
+  if (!message['type'] || typeof message['type'] !== 'string') {
     errors.push('Message must have a valid type')
   }
 
-  if (!message.componentId || typeof message.componentId !== 'string') {
+  if (!message['componentId'] || typeof message['componentId'] !== 'string') {
     errors.push('Message must have a componentId')
   }
 
   // Type-specific validation
-  switch (message.type) {
+  switch (message['type']) {
     case 'collaborativeEditorChange':
-      if (!message.documentId || typeof message.documentId !== 'string') {
+      if (!message['documentId'] || typeof message['documentId'] !== 'string') {
         errors.push('collaborativeEditorChange requires documentId')
       }
-      if (!Array.isArray(message.changes)) {
+      if (!Array.isArray(message['changes'])) {
         errors.push('collaborativeEditorChange requires changes array')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('collaborativeEditorChange requires userId')
       }
-      if (typeof message.version !== 'number') {
+      if (typeof message['version'] !== 'number') {
         errors.push('collaborativeEditorChange requires version number')
       }
       break
 
     case 'collaborativeEditorSync':
-      if (!message.documentId || typeof message.documentId !== 'string') {
+      if (!message['documentId'] || typeof message['documentId'] !== 'string') {
         errors.push('collaborativeEditorSync requires documentId')
       }
-      if (typeof message.content !== 'string') {
+      if (typeof message['content'] !== 'string') {
         errors.push('collaborativeEditorSync requires content string')
       }
-      if (typeof message.version !== 'number') {
+      if (typeof message['version'] !== 'number') {
         errors.push('collaborativeEditorSync requires version number')
       }
       break
 
     case 'presenceJoin':
-      if (!message.roomId || typeof message.roomId !== 'string') {
+      if (!message['roomId'] || typeof message['roomId'] !== 'string') {
         errors.push('presenceJoin requires roomId')
       }
-      if (!message.user || typeof message.user !== 'object') {
+      if (!message['user'] || typeof message['user'] !== 'object') {
         errors.push('presenceJoin requires user object')
       }
       break
 
     case 'presenceLeave':
-      if (!message.roomId || typeof message.roomId !== 'string') {
+      if (!message['roomId'] || typeof message['roomId'] !== 'string') {
         errors.push('presenceLeave requires roomId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('presenceLeave requires userId')
       }
       break
 
     case 'presenceUpdate':
-      if (!message.roomId || typeof message.roomId !== 'string') {
+      if (!message['roomId'] || typeof message['roomId'] !== 'string') {
         errors.push('presenceUpdate requires roomId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('presenceUpdate requires userId')
       }
-      if (!message.status || typeof message.status !== 'string') {
+      if (!message['status'] || typeof message['status'] !== 'string') {
         errors.push('presenceUpdate requires status')
       }
       break
 
     case 'cursorMove':
-      if (!message.roomId || typeof message.roomId !== 'string') {
+      if (!message['roomId'] || typeof message['roomId'] !== 'string') {
         errors.push('cursorMove requires roomId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('cursorMove requires userId')
       }
-      if (!message.position || typeof message.position !== 'object') {
+      if (!message['position'] || typeof message['position'] !== 'object') {
         errors.push('cursorMove requires position object')
       }
       break
 
     case 'cursorSelection':
-      if (!message.roomId || typeof message.roomId !== 'string') {
+      if (!message['roomId'] || typeof message['roomId'] !== 'string') {
         errors.push('cursorSelection requires roomId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('cursorSelection requires userId')
       }
-      if (!message.selection || typeof message.selection !== 'object') {
+      if (!message['selection'] || typeof message['selection'] !== 'object') {
         errors.push('cursorSelection requires selection object')
       }
       break
 
     case 'canvasDraw':
-      if (!message.canvasId || typeof message.canvasId !== 'string') {
+      if (!message['canvasId'] || typeof message['canvasId'] !== 'string') {
         errors.push('canvasDraw requires canvasId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('canvasDraw requires userId')
       }
-      if (!message.action || typeof message.action !== 'object') {
+      if (!message['action'] || typeof message['action'] !== 'object') {
         errors.push('canvasDraw requires action object')
       }
       break
 
     case 'canvasClear':
-      if (!message.canvasId || typeof message.canvasId !== 'string') {
+      if (!message['canvasId'] || typeof message['canvasId'] !== 'string') {
         errors.push('canvasClear requires canvasId')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('canvasClear requires userId')
       }
       break
 
     case 'commentCreate':
-      if (!message.threadId || typeof message.threadId !== 'string') {
+      if (!message['threadId'] || typeof message['threadId'] !== 'string') {
         errors.push('commentCreate requires threadId')
       }
-      if (!message.entityId || typeof message.entityId !== 'string') {
+      if (!message['entityId'] || typeof message['entityId'] !== 'string') {
         errors.push('commentCreate requires entityId')
       }
-      if (!message.entityType || typeof message.entityType !== 'string') {
+      if (!message['entityType'] || typeof message['entityType'] !== 'string') {
         errors.push('commentCreate requires entityType')
       }
-      if (typeof message.content !== 'string') {
+      if (typeof message['content'] !== 'string') {
         errors.push('commentCreate requires content')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('commentCreate requires userId')
       }
       break
 
     case 'commentReply':
-      if (!message.threadId || typeof message.threadId !== 'string') {
+      if (!message['threadId'] || typeof message['threadId'] !== 'string') {
         errors.push('commentReply requires threadId')
       }
-      if (!message.commentId || typeof message.commentId !== 'string') {
+      if (!message['commentId'] || typeof message['commentId'] !== 'string') {
         errors.push('commentReply requires commentId')
       }
-      if (typeof message.content !== 'string') {
+      if (typeof message['content'] !== 'string') {
         errors.push('commentReply requires content')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('commentReply requires userId')
       }
       break
 
     case 'commentResolve':
-      if (!message.threadId || typeof message.threadId !== 'string') {
+      if (!message['threadId'] || typeof message['threadId'] !== 'string') {
         errors.push('commentResolve requires threadId')
       }
-      if (typeof message.resolved !== 'boolean') {
+      if (typeof message['resolved'] !== 'boolean') {
         errors.push('commentResolve requires resolved boolean')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('commentResolve requires userId')
       }
       break
 
     case 'commentReact':
-      if (!message.threadId || typeof message.threadId !== 'string') {
+      if (!message['threadId'] || typeof message['threadId'] !== 'string') {
         errors.push('commentReact requires threadId')
       }
-      if (!message.commentId || typeof message.commentId !== 'string') {
+      if (!message['commentId'] || typeof message['commentId'] !== 'string') {
         errors.push('commentReact requires commentId')
       }
-      if (!message.reaction || typeof message.reaction !== 'string') {
+      if (!message['reaction'] || typeof message['reaction'] !== 'string') {
         errors.push('commentReact requires reaction')
       }
-      if (!message.userId || typeof message.userId !== 'string') {
+      if (!message['userId'] || typeof message['userId'] !== 'string') {
         errors.push('commentReact requires userId')
       }
       break
 
     default:
-      errors.push(`Unknown collaboration message type: ${message.type}`)
+      errors.push(`Unknown collaboration message type: ${message['type']}`)
   }
 
   return { valid: errors.length === 0, errors }

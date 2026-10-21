@@ -25,6 +25,19 @@ export interface JSONSchema {
 }
 
 /**
+ * MCP Client Capabilities
+ * What a connecting client supports
+ */
+export interface MCPClientCapabilities {
+  /** Supports workspace roots */
+  roots?: boolean
+  /** Supports sampling */
+  sampling?: boolean
+  /** Experimental features */
+  experimental?: Record<string, unknown>
+}
+
+/**
  * MCP Client Information
  * Provided during initialization
  */
@@ -34,14 +47,7 @@ export interface MCPClientInfo {
   /** Client version (e.g., "1.0.0") */
   version: string
   /** Client capabilities */
-  capabilities?: {
-    /** Supports workspace roots */
-    roots?: boolean
-    /** Supports sampling */
-    sampling?: boolean
-    /** Experimental features */
-    experimental?: Record<string, unknown>
-  }
+  capabilities?: MCPClientCapabilities
 }
 
 /**
@@ -59,7 +65,7 @@ export interface MCPServerInfo {
  * MCP Server Capabilities
  * Defines what the server can do
  */
-export interface MCPCapabilities {
+export interface MCPServerCapabilities {
   /** Tool capabilities */
   tools?: {
     /** List of available tools */
@@ -91,12 +97,18 @@ export interface MCPInitializeResult {
   /** Protocol version (e.g., "2024-11-05") */
   protocolVersion: string
   /** Server capabilities */
-  capabilities: MCPCapabilities
+  capabilities: MCPServerCapabilities
   /** Server information */
   serverInfo: MCPServerInfo
   /** Additional instructions for the client */
   instructions?: string
 }
+
+/**
+ * MCP Tool Input Schema
+ * JSON Schema describing a tool's expected input shape
+ */
+export type MCPToolInputSchema = JSONSchema
 
 /**
  * MCP Tool Definition
@@ -108,7 +120,7 @@ export interface MCPTool {
   /** Human-readable description */
   description: string
   /** JSON Schema for input validation */
-  inputSchema: JSONSchema
+  inputSchema: MCPToolInputSchema
 }
 
 /**
@@ -177,17 +189,23 @@ export interface MCPResourceContents {
  * MCP Prompt Definition
  * Describes a prompt template
  */
+/**
+ * MCP Prompt Argument
+ * A single named argument a prompt accepts
+ */
+export interface MCPPromptArgument {
+  name: string
+  description?: string
+  required?: boolean
+}
+
 export interface MCPPrompt {
   /** Prompt name */
   name: string
   /** Description */
   description?: string
   /** Prompt arguments */
-  arguments?: Array<{
-    name: string
-    description?: string
-    required?: boolean
-  }>
+  arguments?: MCPPromptArgument[]
 }
 
 /**

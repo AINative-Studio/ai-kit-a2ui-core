@@ -64,7 +64,9 @@
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "prepublishOnly": "npm run build && npm run test"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@marcbachmann/cel-js": "^8.0.0"
+  },
   "devDependencies": {
     "@types/node": "20.10.0",
     "@typescript-eslint/eslint-plugin": "6.13.0",

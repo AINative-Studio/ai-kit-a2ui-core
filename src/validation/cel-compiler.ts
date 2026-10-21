@@ -3,7 +3,7 @@
  * Handles compilation and caching of CEL expressions for performance
  */
 
-import { parse, type ParsedExpression } from '@marcbachmann/cel-js'
+import { parse, type ParseResult } from '@marcbachmann/cel-js'
 import type { CompiledCELExpression } from '../types/validation.js'
 
 /**
@@ -92,11 +92,11 @@ export class CELCompiler {
      * Compile a CEL expression
      * Returns cached version if available
      */
-    compile(expression: string): ParsedExpression {
+    compile(expression: string): ParseResult {
         // Check cache first
         const cached = this.cache.get(expression)
         if (cached) {
-            return cached.compiled as ParsedExpression
+            return cached.compiled as ParseResult
         }
 
         // Compile expression
