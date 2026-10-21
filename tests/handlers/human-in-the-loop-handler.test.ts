@@ -323,9 +323,9 @@ describe('HumanInTheLoopHandler', () => {
       await handler.handleInterrupt(interrupt)
 
       // Check if stored
-      const stored = await storage.get('hitl:interrupts')
+      const stored = await storage.get<AgentInterruptMessage[]>('hitl:interrupts')
       expect(stored).toBeDefined()
-      expect(Array.isArray(stored)).toBe(true)
+      expect(Array.isArray(stored?.data)).toBe(true)
     })
 
     it('should restore interrupts from storage on initialization', async () => {
@@ -378,8 +378,8 @@ describe('HumanInTheLoopHandler', () => {
         timestamp: Date.now(),
       })
 
-      const stored = await storage.get('hitl:interrupts')
-      expect(stored).toEqual([])
+      const stored = await storage.get<AgentInterruptMessage[]>('hitl:interrupts')
+      expect(stored?.data).toEqual([])
     })
   })
 
@@ -446,7 +446,7 @@ describe('HumanInTheLoopHandler', () => {
       }
 
       await handler.handleInterrupt(interrupt)
-      vi.advanceTimersByTime(5000)
+      await vi.advanceTimersByTimeAsync(5000)
 
       expect(listener).toHaveBeenCalledWith('int-timeout-event')
     })
@@ -550,7 +550,11 @@ describe('HumanInTheLoopHandler', () => {
         interruptId: 'int-large-timeout',
         reason: 'confirmation',
         prompt: 'Long timeout?',
-        timeout: Number.MAX_SAFE_INTEGER,
+        // setTimeout delays beyond the 32-bit signed int max (2^31-1 ms, ~24.8
+        // days) overflow and fire almost immediately in both Node and fake
+        // timers, so this uses the largest value that still behaves as a real
+        // "doesn't fire soon" timeout.
+        timeout: 2 ** 31 - 1,
         timestamp: Date.now(),
       }
 

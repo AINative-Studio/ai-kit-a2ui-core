@@ -180,10 +180,12 @@ describe('EmailBuilderHandler', () => {
 
   describe('Load Email Template', () => {
     it('loads template and sends loaded message', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const loadMessage: EmailTemplateLoadMessage = {
         type: 'emailTemplateLoad',
         componentId: 'editor-1',
-        templateId: 'template-123',
+        templateId,
         timestamp: Date.now(),
       }
 
@@ -192,7 +194,7 @@ describe('EmailBuilderHandler', () => {
 
       const loadedMessages = transport.sentMessages.filter((m) => m.type === 'emailTemplateLoaded')
       expect(loadedMessages).toHaveLength(1)
-      expect(loadedMessages[0].templateId).toBe('template-123')
+      expect(loadedMessages[0].templateId).toBe(templateId)
     })
 
     it('sends error when template not found', async () => {
@@ -314,6 +316,22 @@ describe('EmailBuilderHandler', () => {
     it('updates existing block', async () => {
       const { templateId } = await createTestTemplate('Test Template')
 
+      const addMessage: EmailBlockAddMessage = {
+        type: 'emailBlockAdd',
+        componentId: 'editor-1',
+        templateId,
+        block: {
+          type: 'text',
+          id: 'block-1',
+          content: 'Hello world',
+        },
+        position: 0,
+        timestamp: Date.now(),
+      }
+      transport.emit('emailBlockAdd', addMessage)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      transport.clearSentMessages()
+
       const updateMessage: EmailBlockUpdateMessage = {
         type: 'emailBlockUpdate',
         componentId: 'editor-1',
@@ -336,10 +354,12 @@ describe('EmailBuilderHandler', () => {
     })
 
     it('deletes block from template', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const deleteMessage: EmailBlockDeleteMessage = {
         type: 'emailBlockDelete',
         componentId: 'editor-1',
-        templateId: 'template-1',
+        templateId,
         blockId: 'block-1',
         timestamp: Date.now(),
       }
@@ -353,10 +373,12 @@ describe('EmailBuilderHandler', () => {
     })
 
     it('reorders blocks in template', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const reorderMessage: EmailBlockReorderMessage = {
         type: 'emailBlockReorder',
         componentId: 'editor-1',
-        templateId: 'template-1',
+        templateId,
         blockOrder: ['block-3', 'block-1', 'block-2'],
         timestamp: Date.now(),
       }
@@ -372,10 +394,12 @@ describe('EmailBuilderHandler', () => {
 
   describe('Email Variable Operations', () => {
     it('adds variable to template', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const addMessage: EmailVariableAddMessage = {
         type: 'emailVariableAdd',
         componentId: 'vars-1',
-        templateId: 'template-1',
+        templateId,
         variable: {
           id: 'userName',
           name: 'User Name',
@@ -394,10 +418,28 @@ describe('EmailBuilderHandler', () => {
     })
 
     it('updates existing variable', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
+      const addMessage: EmailVariableAddMessage = {
+        type: 'emailVariableAdd',
+        componentId: 'vars-1',
+        templateId,
+        variable: {
+          id: 'userName',
+          name: 'User Name',
+          type: 'text',
+          defaultValue: 'User',
+        },
+        timestamp: Date.now(),
+      }
+      transport.emit('emailVariableAdd', addMessage)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      transport.clearSentMessages()
+
       const updateMessage: EmailVariableUpdateMessage = {
         type: 'emailVariableUpdate',
         componentId: 'vars-1',
-        templateId: 'template-1',
+        templateId,
         variableId: 'userName',
         variable: {
           id: 'userName',
@@ -417,10 +459,28 @@ describe('EmailBuilderHandler', () => {
     })
 
     it('deletes variable from template', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
+      const addMessage: EmailVariableAddMessage = {
+        type: 'emailVariableAdd',
+        componentId: 'vars-1',
+        templateId,
+        variable: {
+          id: 'userName',
+          name: 'User Name',
+          type: 'text',
+          defaultValue: 'User',
+        },
+        timestamp: Date.now(),
+      }
+      transport.emit('emailVariableAdd', addMessage)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      transport.clearSentMessages()
+
       const deleteMessage: EmailVariableDeleteMessage = {
         type: 'emailVariableDelete',
         componentId: 'vars-1',
-        templateId: 'template-1',
+        templateId,
         variableId: 'userName',
         timestamp: Date.now(),
       }
@@ -436,10 +496,12 @@ describe('EmailBuilderHandler', () => {
 
   describe('Email Theme Operations', () => {
     it('updates template theme', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const updateMessage: EmailThemeUpdateMessage = {
         type: 'emailThemeUpdate',
         componentId: 'editor-1',
-        templateId: 'template-1',
+        templateId,
         theme: {
           name: 'Dark Theme',
           mode: 'dark',
@@ -631,10 +693,12 @@ describe('EmailBuilderHandler', () => {
 
   describe('Email Template Duplicate', () => {
     it('duplicates template with new name', async () => {
+      const { templateId } = await createTestTemplate('Test Template')
+
       const duplicateMessage: EmailTemplateDuplicateMessage = {
         type: 'emailTemplateDuplicate',
         componentId: 'list-1',
-        templateId: 'template-1',
+        templateId,
         newName: 'Template Copy',
         timestamp: Date.now(),
       }
@@ -647,7 +711,7 @@ describe('EmailBuilderHandler', () => {
       )
       expect(duplicatedMessages).toHaveLength(1)
       expect(duplicatedMessages[0].newTemplateId).toBeDefined()
-      expect(duplicatedMessages[0].newTemplateId).not.toBe('template-1')
+      expect(duplicatedMessages[0].newTemplateId).not.toBe(templateId)
       expect(duplicatedMessages[0].template.metadata.name).toBe('Template Copy')
     })
   })

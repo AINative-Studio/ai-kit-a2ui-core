@@ -227,9 +227,9 @@ describe('EmailServiceClient', () => {
       const mockResponse = {
         testId: 'test-456',
         status: 'failed',
-        recipientEmail: 'invalid@',
+        recipientEmail: 'bounced@example.com',
         sentAt: new Date(),
-        error: 'Invalid email address',
+        error: 'Mailbox does not exist',
       }
 
       ;(global.fetch as any).mockResolvedValueOnce({
@@ -239,11 +239,11 @@ describe('EmailServiceClient', () => {
 
       const result = await client.sendTestEmail({
         template,
-        testEmail: 'invalid@',
+        testEmail: 'bounced@example.com',
       })
 
       expect(result.status).toBe('failed')
-      expect(result.error).toBe('Invalid email address')
+      expect(result.error).toBe('Mailbox does not exist')
     })
   })
 
