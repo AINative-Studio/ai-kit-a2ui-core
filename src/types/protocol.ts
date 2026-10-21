@@ -4,6 +4,11 @@
 
 import type { A2UIComponent } from './components.js'
 import type { ZeroDBMessage } from './zerodb-messages.js'
+import type { AuthMessage } from './auth-messages.js'
+import type { NotificationMessage } from './notification-messages.js'
+import type { ProgressiveRenderMessage } from './progressive-render-messages.js'
+import type { EmailBuilderMessage } from './email-builder-messages.js'
+import type { ProgressTrackingMessage } from './progress-tracking.js'
 
 /**
  * All protocol message types
@@ -92,6 +97,78 @@ export type MessageType =
   | 'zerodbMemoryStore'
   | 'zerodbAnalyticsQuery'
   | 'zerodbAnalyticsQueryResult'
+  | 'notificationCreate'
+  | 'notificationCreated'
+  | 'notificationUpdate'
+  | 'notificationUpdated'
+  | 'notificationDelete'
+  | 'notificationDeleted'
+  | 'notificationMarkAllRead'
+  | 'notificationAllMarkedRead'
+  | 'notificationDeleteAll'
+  | 'notificationAllDeleted'
+  | 'notificationAction'
+  | 'notificationListRequest'
+  | 'notificationListResponse'
+  | 'notificationGetRequest'
+  | 'notificationGetResponse'
+  | 'notificationSettingsUpdate'
+  | 'notificationSettingsUpdated'
+  | 'notificationCount'
+  | 'notificationSubscribe'
+  | 'notificationUnsubscribe'
+  | 'notificationError'
+  | 'progressiveRenderStart'
+  | 'progressiveRenderChunk'
+  | 'progressiveRenderComplete'
+  | 'progressiveRenderError'
+  | 'progressiveRenderProgress'
+  | 'emailTemplateSave'
+  | 'emailTemplateSaved'
+  | 'emailTemplateLoad'
+  | 'emailTemplateLoaded'
+  | 'emailTemplateDelete'
+  | 'emailTemplateDeleted'
+  | 'emailTemplateList'
+  | 'emailTemplateListResponse'
+  | 'emailBlockUpdate'
+  | 'emailBlockUpdated'
+  | 'emailBlockAdd'
+  | 'emailBlockAdded'
+  | 'emailBlockDelete'
+  | 'emailBlockDeleted'
+  | 'emailBlockReorder'
+  | 'emailBlockReordered'
+  | 'emailVariableUpdate'
+  | 'emailVariableUpdated'
+  | 'emailVariableAdd'
+  | 'emailVariableAdded'
+  | 'emailVariableDelete'
+  | 'emailVariableDeleted'
+  | 'emailThemeUpdate'
+  | 'emailThemeUpdated'
+  | 'emailTemplatePreview'
+  | 'emailTemplatePreviewResponse'
+  | 'emailTemplateValidate'
+  | 'emailTemplateValidationResponse'
+  | 'emailTemplateSend'
+  | 'emailTemplateSendResponse'
+  | 'emailTemplateTestSend'
+  | 'emailTemplateTestSendResponse'
+  | 'emailTemplateAnalytics'
+  | 'emailTemplateAnalyticsResponse'
+  | 'emailTemplateExport'
+  | 'emailTemplateExportResponse'
+  | 'emailTemplateImport'
+  | 'emailTemplateImportResponse'
+  | 'emailTemplateDuplicate'
+  | 'emailTemplateDuplicated'
+  | 'emailBuilderError'
+  | 'updateProgress'
+  | 'progressSync'
+  | 'requestProgress'
+  | 'progressCleared'
+  | 'progressConflict'
 
 /**
  * Base message structure
@@ -235,6 +312,10 @@ export type A2UIMessage =
   | PongMessage
   | AuthMessage
   | ZeroDBMessage
+  | NotificationMessage
+  | ProgressiveRenderMessage
+  | EmailBuilderMessage
+  | ProgressTrackingMessage
 
 /**
  * Type guards for message discrimination

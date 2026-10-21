@@ -102,7 +102,7 @@ export interface UpdateProgressMessage extends BaseMessage {
   /** Progress tracking state */
   state: ProgressTrackingState
   /** ISO 8601 timestamp of this update */
-  timestamp: string
+  updatedAt: string
 }
 
 /**
@@ -162,7 +162,7 @@ export interface ProgressClearedMessage extends BaseMessage {
   /** Reason for clearing (user action, expiration, etc.) */
   reason?: 'user_action' | 'expiration' | 'completion' | 'reset'
   /** ISO 8601 timestamp when cleared */
-  timestamp: string
+  clearedAt: string
 }
 
 /**
@@ -182,7 +182,7 @@ export interface ProgressConflictMessage extends BaseMessage {
   /** Suggested resolution strategy */
   resolution: 'use_latest' | 'use_furthest' | 'prompt_user'
   /** ISO 8601 timestamp of conflict detection */
-  timestamp: string
+  detectedAt: string
 }
 
 // ============================================================================

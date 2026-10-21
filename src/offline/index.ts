@@ -36,5 +36,5 @@ export type {
   OTOperation,
   CRDTData,
   OfflineConfig,
-  OfflineHandler,
+  OfflineHandler as OfflineHandlerInterface,
 } from '../types/offline-types';

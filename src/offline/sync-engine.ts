@@ -8,8 +8,7 @@ import type {
   SyncResult,
   SyncEvent,
   ConnectionInfo,
-  ConnectionStatus,
-  ConflictReport
+  ConnectionStatus
 } from '../types/offline-types';
 import { OfflineQueue } from './queue';
 import { OfflineStorage } from './storage';

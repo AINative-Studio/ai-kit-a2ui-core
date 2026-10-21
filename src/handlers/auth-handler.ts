@@ -470,7 +470,7 @@ export class AuthHandler {
             message.componentId,
             'invalid_credentials',
             usernameValidation.error || 'Invalid username',
-            { username: usernameValidation.error }
+            { username: usernameValidation.error || 'Invalid username' }
           )
         }
       }
@@ -626,20 +626,20 @@ export class AuthHandler {
 
       // Validate email if being updated
       if (message.updates.email && !validateEmail(message.updates.email)) {
-        fieldErrors.email = 'Invalid email format'
+        fieldErrors['email'] = 'Invalid email format'
       }
 
       // Validate username if being updated
       if (message.updates.username) {
         const usernameValidation = validateUsername(message.updates.username)
         if (!usernameValidation.valid) {
-          fieldErrors.username = usernameValidation.error || 'Invalid username'
+          fieldErrors['username'] = usernameValidation.error || 'Invalid username'
         }
       }
 
       // Validate phone if being updated
       if (message.updates.phone && !validatePhoneNumber(message.updates.phone)) {
-        fieldErrors.phone = 'Invalid phone number format'
+        fieldErrors['phone'] = 'Invalid phone number format'
       }
 
       if (Object.keys(fieldErrors).length > 0) {

@@ -123,25 +123,25 @@ export class EmailServiceClient {
 
     // Handle template
     if (typeof options.template === 'string') {
-      body.templateId = options.template
+      body['templateId'] = options.template
       // For template ID, let server generate HTML
     } else {
-      body.template = options.template
+      body['template'] = options.template
       // Only generate HTML if template has required properties
       if (options.template && typeof options.template === 'object' && 'blocks' in options.template && 'metadata' in options.template) {
-        body.html = templateToHtml(options.template as any, options.variables)
+        body['html'] = templateToHtml(options.template as any, options.variables)
       }
     }
 
     // Add optional fields
     if (options.variables) {
-      body.variables = options.variables
+      body['variables'] = options.variables
     }
     if (options.schedule) {
-      body.schedule = options.schedule
+      body['schedule'] = options.schedule
     }
     if (options.tracking) {
-      body.tracking = options.tracking
+      body['tracking'] = options.tracking
     }
 
     // Send request

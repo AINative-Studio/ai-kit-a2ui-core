@@ -169,7 +169,6 @@ export class NotificationHandler {
   private readonly notifications = new Map<string, NotificationState>()
   private readonly subscriptions = new Set<string>()
   private syncTimer: ReturnType<typeof setInterval> | null = null
-  private notificationCounter = 0
 
   constructor(transport: A2UITransport, options: NotificationHandlerOptions = {}) {
     this.transport = transport
@@ -704,6 +703,7 @@ export class NotificationHandler {
       const toRemove = notifications.length - this.options.maxNotifications
       for (let i = 0; i < toRemove; i++) {
         const state = notifications[i]
+        if (!state) continue
         if (state.autoCloseTimer) {
           clearTimeout(state.autoCloseTimer)
         }

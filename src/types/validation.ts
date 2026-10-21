@@ -30,7 +30,7 @@ export interface JSONSchema {
 /**
  * Component validation schema with defaults
  */
-export interface ComponentSchema<T extends ComponentType = ComponentType> {
+export interface ComponentSchema<T extends keyof ComponentProperties = keyof ComponentProperties> {
     type: T
     schema: JSONSchema
     defaults: Partial<ComponentProperties[T]>
@@ -52,6 +52,34 @@ export interface ValidationError {
     message: string
     expected?: string
     received?: string
+    /** Where this error originated (e.g. 'celExpression') */
+    source?: string
+    /** Name of the CEL expression that produced this error, when source is 'celExpression' */
+    expressionName?: string
+}
+
+/**
+ * A named CEL (Common Expression Language) validation rule
+ */
+export interface CELExpression {
+    /** Human-readable name for this rule, used in error messages */
+    name: string
+    /** The CEL expression source, must evaluate to a boolean */
+    expression: string
+    /** Error message shown when the expression evaluates to false */
+    message: string
+}
+
+/**
+ * A compiled, cached CEL expression
+ */
+export interface CompiledCELExpression {
+    /** The original expression source */
+    source: string
+    /** The compiled, callable expression */
+    compiled: unknown
+    /** Timestamp (ms) when this expression was compiled, for cache expiry */
+    compiledAt: number
 }
 
 /**
@@ -536,7 +564,7 @@ export function validateComponentProperties<T extends ComponentType>(
 /**
  * Apply default values to component properties
  */
-export function applyDefaults<T extends ComponentType>(
+export function applyDefaults<T extends keyof ComponentProperties>(
     componentType: T,
     properties?: Partial<ComponentProperties[T]>
 ): ComponentProperties[T] {
@@ -577,7 +605,7 @@ export function applyDefaults<T extends ComponentType>(
 /**
  * Get default properties for a component type
  */
-export function getDefaults<T extends ComponentType>(
+export function getDefaults<T extends keyof ComponentProperties>(
     componentType: T
 ): Partial<ComponentProperties[T]> {
     const componentSchema = videoComponentSchemas[componentType as keyof typeof videoComponentSchemas]

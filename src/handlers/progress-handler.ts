@@ -21,10 +21,8 @@ import {
   isRequestProgressMessage,
   isProgressClearedMessage,
   isProgressConflictMessage,
-  calculateProgress,
   isVideoCompleted,
   findCurrentScene,
-  getNextScenes,
   resolveProgressConflict,
 } from '../types/progress-tracking.js'
 
@@ -148,7 +146,7 @@ export class ProgressHandler {
       position,
       session,
       state,
-      timestamp: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     this.transport.send(message)
     this.emit('progressUpdated', { videoId, userId, position, scene: currentScene, session })

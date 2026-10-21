@@ -6,10 +6,21 @@
 import type {
   QueuedOperation,
   OfflineQueueConfig,
-  RetryStrategy,
   SyncStatus
 } from '../types/offline-types';
 import { OfflineStorage } from './storage';
+
+/**
+ * Queue statistics by sync status
+ */
+export interface QueueStats {
+  total: number;
+  pending: number;
+  syncing: number;
+  synced: number;
+  failed: number;
+  conflict: number;
+}
 
 /**
  * Default queue configuration
@@ -379,14 +390,7 @@ export class OfflineQueue<T = unknown> {
   /**
    * Get queue statistics
    */
-  async getStats(): Promise<{
-    total: number;
-    pending: number;
-    syncing: number;
-    synced: number;
-    failed: number;
-    conflict: number;
-  }> {
+  async getStats(): Promise<QueueStats> {
     if (!this.initialized) {
       await this.initialize();
     }

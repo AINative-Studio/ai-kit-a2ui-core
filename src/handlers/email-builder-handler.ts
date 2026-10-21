@@ -44,8 +44,9 @@ import type {
   EmailTemplateListItem,
   EmailBlock,
   EmailVariable,
-  EmailTheme,
   EmailTemplateValidation,
+  EmailSendResult,
+  EmailProvider,
 } from '../types/index.js'
 import {
   isEmailTemplateSaveMessage,
@@ -129,12 +130,7 @@ export interface EmailSender {
     recipients: Array<{ email: string; name?: string }>
     variables?: Record<string, string | number | boolean>
     provider?: string
-  }): Promise<{
-    jobId: string
-    status: string
-    recipientCount: number
-    provider: string
-  }>
+  }): Promise<EmailSendResult>
   sendTest(options: {
     template: EmailTemplate
     testEmail: string
@@ -443,7 +439,7 @@ export class EmailBuilderHandler {
 
       // Auto-save if enabled
       if (this.options.autoSave) {
-        this.scheduleAutoSave(message.componentId, template)
+        this.scheduleAutoSave(template)
       }
     } catch (error) {
       this.sendError(message.componentId, 'Failed to add block', 'OPERATION_FAILED', error)
@@ -489,7 +485,7 @@ export class EmailBuilderHandler {
 
       // Auto-save if enabled
       if (this.options.autoSave) {
-        this.scheduleAutoSave(message.componentId, template)
+        this.scheduleAutoSave(template)
       }
     } catch (error) {
       this.sendError(message.componentId, 'Failed to update block', 'OPERATION_FAILED', error)
@@ -906,7 +902,7 @@ export class EmailBuilderHandler {
   /**
    * Schedule auto-save
    */
-  private scheduleAutoSave(componentId: string, template: EmailTemplate): void {
+  private scheduleAutoSave(template: EmailTemplate): void {
     const existingTimer = this.autoSaveTimers.get(template.id)
     if (existingTimer) {
       clearTimeout(existingTimer)
@@ -957,14 +953,15 @@ export class EmailBuilderHandler {
    * Get template from memory or load from storage
    */
   private async getTemplate(templateId: string): Promise<EmailTemplate | null> {
-    let template = this.templates.get(templateId)
-    if (!template) {
-      template = await this.options.storage.load(templateId)
-      if (template) {
-        this.templates.set(templateId, template)
-      }
+    const cached = this.templates.get(templateId)
+    if (cached) {
+      return cached
     }
-    return template
+    const loaded = await this.options.storage.load(templateId)
+    if (loaded) {
+      this.templates.set(templateId, loaded)
+    }
+    return loaded
   }
 
   /**
@@ -1067,7 +1064,7 @@ export class EmailBuilderHandler {
           jobId: `job_${Date.now()}`,
           status: 'sent',
           recipientCount: options.recipients.length,
-          provider: options.provider || 'resend',
+          provider: (options.provider as EmailProvider) || 'resend',
         }
       },
 

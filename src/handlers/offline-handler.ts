@@ -8,10 +8,12 @@ import type {
   OfflineHandler as IOfflineHandler,
   QueuedOperation,
   SyncResult,
-  SyncEvent
+  SyncEvent,
+  StorageStats,
+  CacheStats
 } from '../types/offline-types';
 import { OfflineStorage } from '../offline/storage';
-import { OfflineQueue } from '../offline/queue';
+import { OfflineQueue, type QueueStats } from '../offline/queue';
 import { OfflineCache } from '../offline/cache';
 import { SyncEngine } from '../offline/sync-engine';
 import { ConflictResolver } from '../offline/conflict-resolver';
@@ -212,7 +214,7 @@ export class OfflineHandler implements IOfflineHandler {
       await this.initialize();
     }
 
-    return this.cache.get(key);
+    return this.cache.get(key) as Promise<T | null>;
   }
 
   /**
@@ -242,9 +244,9 @@ export class OfflineHandler implements IOfflineHandler {
    * Get all storage stats
    */
   async getStats(): Promise<{
-    storage: ReturnType<typeof this.storage.getStats>;
-    queue: ReturnType<typeof this.queue.getStats>;
-    cache: ReturnType<typeof this.cache.getStats>;
+    storage: StorageStats;
+    queue: QueueStats;
+    cache: CacheStats;
   }> {
     if (!this.initialized) {
       await this.initialize();

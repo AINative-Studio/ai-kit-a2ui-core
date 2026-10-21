@@ -497,6 +497,7 @@ export interface EmailTemplateEditorProperties {
   maxUndoHistory?: number
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -527,6 +528,7 @@ export interface EmailTemplatePreviewProperties {
   interactive?: boolean
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -563,6 +565,7 @@ export interface EmailTemplateSendProperties {
   showConfirmation?: boolean
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -627,6 +630,7 @@ export interface EmailTemplateListProperties {
   enablePagination?: boolean
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -659,6 +663,7 @@ export interface EmailTemplateVariablesProperties {
   enableTesting?: boolean
   /** Additional metadata */
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 /**
@@ -949,8 +954,9 @@ export function extractVariables(text: string): string[] {
   const variables: string[] = []
   let match
   while ((match = regex.exec(text)) !== null) {
-    if (!variables.includes(match[1])) {
-      variables.push(match[1])
+    const name = match[1]
+    if (name && !variables.includes(name)) {
+      variables.push(name)
     }
   }
   return variables
