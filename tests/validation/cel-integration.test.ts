@@ -84,7 +84,7 @@ describe('CEL Integration Tests', () => {
                 },
                 {
                     name: 'recording_with_consent',
-                    expression: 'data.features.recording ? has(data, "recordingConsent") || true : true',
+                    expression: 'data.features.recording ? has(data.recordingConsent) || true : true',
                     message: 'Recording requires consent flag'
                 }
             ]
@@ -204,7 +204,7 @@ describe('CEL Integration Tests', () => {
 
             const expression: CELExpression = {
                 name: 'modal_close_handler',
-                expression: 'data.type == "modal" ? has(data.properties, "onClose") : true',
+                expression: 'data.type == "modal" ? has(data.properties.onClose) : true',
                 message: 'Modal components must have onClose handler'
             }
 
@@ -297,7 +297,7 @@ describe('CEL Integration Tests', () => {
                 },
                 {
                     name: 'timezone_required_if_enabled',
-                    expression: 'data.businessHours.enabled ? has(data.businessHours, "timezone") : true',
+                    expression: 'data.businessHours.enabled ? has(data.businessHours.timezone) : true',
                     message: 'Timezone is required when business hours are enabled'
                 }
             ]
@@ -334,7 +334,7 @@ describe('CEL Integration Tests', () => {
                 },
                 {
                     name: 'auth_header_required',
-                    expression: 'has(data.webhook.headers, "Authorization")',
+                    expression: 'has(data.webhook.headers.Authorization)',
                     message: 'Authorization header is required'
                 },
                 {
@@ -433,8 +433,11 @@ describe('CEL Integration Tests', () => {
 
         test('handles complex collection operations efficiently', () => {
             const context: ValidationContext = {
+                // id is BigInt — the expression below does `item.id % 2`,
+                // and CEL's % has no overload for its "double" type (what a
+                // plain JS number is treated as), only "int" (BigInt in JS).
                 data: Array.from({ length: 100 }, (_, i) => ({
-                    id: i,
+                    id: BigInt(i),
                     name: `Item ${i}`,
                     active: i % 2 === 0
                 }))

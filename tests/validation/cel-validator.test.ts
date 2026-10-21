@@ -202,7 +202,10 @@ describe('CELValidator', () => {
         })
 
         test('validates all array elements', () => {
-            const context: ValidationContext = { data: [2, 4, 6, 8, 10] }
+            // BigInt literals — CEL's % operator has no overload for its
+            // "double" type, only "int" (BigInt in JS); plain JS numbers
+            // are treated as double.
+            const context: ValidationContext = { data: [2n, 4n, 6n, 8n, 10n] }
             const expression: CELExpression = {
                 name: 'all_even',
                 expression: 'value.all(num, num % 2 == 0)',
@@ -253,7 +256,7 @@ describe('CELValidator', () => {
             }
             const expression: CELExpression = {
                 name: 'premium_billing',
-                expression: 'data.type == "premium" ? has(data, "billingInfo") && data.billingInfo.valid : true',
+                expression: 'data.type == "premium" ? has(data.billingInfo) && data.billingInfo.valid : true',
                 message: 'Premium accounts require valid billing info'
             }
 
@@ -270,7 +273,7 @@ describe('CELValidator', () => {
             }
             const expression: CELExpression = {
                 name: 'premium_billing',
-                expression: 'data.type == "premium" ? has(data, "billingInfo") && data.billingInfo.valid : true',
+                expression: 'data.type == "premium" ? has(data.billingInfo) && data.billingInfo.valid : true',
                 message: 'Premium accounts require valid billing info'
             }
 
@@ -305,7 +308,10 @@ describe('CELValidator', () => {
             }
             const expression: CELExpression = {
                 name: 'has_required_fields',
-                expression: 'has(data, "name") && has(data, "age")',
+                // has() is a real CEL macro over a field-select expression,
+                // not a 2-argument function call — has(data, "name") is not
+                // valid CEL syntax.
+                expression: 'has(data.name) && has(data.age)',
                 message: 'Must have name and age fields'
             }
 
@@ -338,7 +344,10 @@ describe('CELValidator', () => {
         })
 
         test('validates bool() conversion', () => {
-            const context: ValidationContext = { data: 1n } // Use BigInt
+            // Real CEL's bool() only has an overload for string input
+            // (bool(int) is not a valid CEL overload) — "true"/"false" are
+            // the actual supported conversion source.
+            const context: ValidationContext = { data: 'true' }
             const expression: CELExpression = {
                 name: 'convert_to_bool',
                 expression: 'bool(value) == true',
@@ -471,7 +480,7 @@ describe('CELValidator', () => {
             const context: ValidationContext = { data: undefined }
             const expression: CELExpression = {
                 name: 'undefined_check',
-                expression: 'value == null || !has(data, "value")', // CEL may not convert undefined properly
+                expression: 'value == null || !has(data.value)', // CEL may not convert undefined properly
                 message: 'Value is undefined'
             }
 

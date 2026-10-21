@@ -4,9 +4,38 @@
  * Provides advanced validation beyond JSON Schema capabilities
  */
 
-import { parse } from '@marcbachmann/cel-js'
+import { Environment } from '@marcbachmann/cel-js'
 import { CELCompiler, CELCompilationError } from './cel-compiler.js'
 import type { CELExpression, ValidationResult, ValidationError } from '../types/validation.js'
+
+/**
+ * Serializes a value for deduplication, converting BigInt (CEL's int type)
+ * to a comparable string form rather than throwing on JSON.stringify.
+ */
+function dedupeKey(value: unknown): string {
+    return JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? v.toString() : v))
+}
+
+/**
+ * The shared CEL environment this validator evaluates expressions against.
+ * Custom helpers (like `unique`) must be registered here via
+ * `registerFunction` — CEL requires real function registration on an
+ * Environment; a plain object spread into the evaluation context is only
+ * ever treated as data, never as something an expression can call.
+ */
+const celEnvironment = new Environment({ unlistedVariablesAreDyn: true }).registerFunction(
+    'unique(list): list',
+    (arr: unknown[]): unknown[] => {
+        if (!Array.isArray(arr)) return []
+        const seen = new Set<string>()
+        return arr.filter((item) => {
+            const key = dedupeKey(item)
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+        })
+    }
+)
 
 /**
  * Validation context for CEL expression evaluation
@@ -35,21 +64,6 @@ export class CELValidator {
     }
 
     /**
-     * Create evaluation context with helper functions
-     * Note: CEL has built-in functions like int(), string(), bool(), has(), duration()
-     */
-    private createHelpers(): Record<string, unknown> {
-        return {
-            // unique() - Remove duplicates from array (for duplicate ID detection)
-            unique: (arr: unknown[]): unknown[] => {
-                if (!Array.isArray(arr)) return []
-                return [...new Set(arr.map(item => JSON.stringify(item)))]
-                    .map(item => JSON.parse(item))
-            }
-        }
-    }
-
-    /**
      * Validate data against a single CEL expression
      */
     validate(
@@ -63,7 +77,7 @@ export class CELValidator {
             const evalContext = this.buildEvaluationContext(context)
 
             // Parse and evaluate expression
-            const expr = parse(expression.expression)
+            const expr = celEnvironment.parse(expression.expression)
             const result = expr(evalContext)
 
             // Check if result is boolean
@@ -141,7 +155,7 @@ export class CELValidator {
      */
     evaluateExpression(expression: string, data: unknown): unknown {
         const context = this.buildEvaluationContext({ data })
-        const expr = parse(expression)
+        const expr = celEnvironment.parse(expression)
         return expr(context)
     }
 
@@ -188,9 +202,6 @@ export class CELValidator {
             data: data,
             parent: parent ?? null,
             root: root ?? data,
-
-            // Helper functions
-            ...this.createHelpers(),
 
             // Add custom variables
             ...variables
