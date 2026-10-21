@@ -37,7 +37,10 @@ class MockWebSocket {
   close(): void {
     this.readyState = MockWebSocket.CLOSED
     setTimeout(() => {
-      this.onclose?.(new CloseEvent('close'))
+      // CloseEvent isn't a global in the node test environment (it's a
+      // browser/WebSocket API); the real transport's onclose handler takes
+      // no parameters, so a plain object stand-in is sufficient here.
+      this.onclose?.({ type: 'close' } as CloseEvent)
     }, 10)
   }
 
